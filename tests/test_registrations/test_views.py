@@ -387,12 +387,13 @@ class TestDraftRegistrationViews(RegistrationsTestBase):
 
     def test_only_admin_can_delete_registration(self):
         non_admin = AuthUserFactory()
-        assert_equal(1, DraftRegistration.objects.filter(deleted__isnull=True).count())
+        initial_draft_count = DraftRegistration.objects.filter(deleted__isnull=True).count()
         url = self.node.api_url_for('delete_draft_registration', draft_id=self.draft._id)
 
         res = self.app.delete(url, auth=non_admin.auth, expect_errors=True)
         assert_equal(res.status_code, http_status.HTTP_403_FORBIDDEN)
-        assert_equal(1, DraftRegistration.objects.filter(deleted__isnull=True).count())
+        end_draft_count =DraftRegistration.objects.filter(deleted__isnull=True).count()
+        assert initial_draft_count == end_draft_count
 
     def test_get_metaschemas(self):
         url = api_url_for('get_metaschemas')

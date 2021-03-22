@@ -123,6 +123,9 @@ class Registration(AbstractNode):
         default=RegistrationModerationStates.INITIAL.db_name
     )
 
+    # A dictrionary of key: value pairs to store additional metadata defined by third-party sources
+    additional_metadata = DateTimeAwareJSONField(blank=True, default=list)
+
     @staticmethod
     def find_failed_registrations():
         expired_if_before = timezone.now() - settings.ARCHIVE_TIMEOUT_TIMEDELTA
@@ -289,6 +292,46 @@ class Registration(AbstractNode):
     @property
     def withdrawal_justification(self):
         return getattr(self.root.retraction, 'justification', None)
+
+    @property
+    def provider_specific_metadata(self):
+        """Surfaces the additional_metadata fields supported by the provider.
+
+        Also formats the reults to inherit any additional field descriptors defined
+        by the provider and to simplify consumpption by the APIt.
+        """
+        if not self.provider or not self.provider.additional_metadata_fields:
+            return []
+
+        provider_supported_metadata = []
+        for field_desc in self.provider.additional_metadata_fields:
+            metadata_field = {
+                'field_value': self.additional_metadata.get(field_desc['field_name'], '')
+            }
+            metadata_field.update(field_desc)
+            provider_supported_metadata.append(metadata_field)
+
+        return provider_supported_metadata
+
+    @provider_specific_metadata.setter
+    def provider_specific_metadata(self, values):
+        """Updates additional_metadata fields supported by the provider.
+
+        Fields listed in values that are not supported by the current provider will be ignored.
+        Fields supported by the provider that are not listed in values will not be altered.
+        """
+        if not self.provider or not self.provider.additional_metadata_fields:
+            return
+
+        provider_supported_fields = {
+            entry['field_name'] for entry in self.provider.additional_metadata_fields
+        }
+        for entry in values:
+            key = entry['field_name']
+            value = entry['field_value']
+            if key in provider_supported_fields:
+                self.additional_metadata[key] = value
+        self.save()
 
     def can_view(self, auth):
         if super().can_view(auth):

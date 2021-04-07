@@ -63,7 +63,7 @@ requests-oauthlib==0.8.0
 raven==6.4.0
 
 # API requirements
-Django==1.11.28
+Django==1.11.29
 djangorestframework==3.8.2
 django-cors-headers==2.1.0
 djangorestframework-bulk==0.2.1

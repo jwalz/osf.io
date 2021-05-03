@@ -36,7 +36,7 @@
     "json-loader": "0.5.7",
     "jstimezonedetect": "^1.0.6",
     "keen-analysis": "^3.7.0",
-    "keen-dataviz": "^3.15.0",
+    "keen-dataviz": "^3.15.5",
     "keen-tracking": "5.0.1",
     "knockout": "~3.5.1",
     "knockout.validation": "^2.0.2",

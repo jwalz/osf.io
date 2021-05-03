@@ -3829,10 +3829,10 @@ keen-core@^0.2.0:
   dependencies:
     component-emitter "^1.2.0"
 
-keen-dataviz@^3.15.0:
-  version "3.15.0"
-  resolved "https://registry.yarnpkg.com/keen-dataviz/-/keen-dataviz-3.15.0.tgz#7a6909454219ecfe730b4514406f1f1d0f4adfba"
-  integrity sha512-0fzh4xfVFVtwjGcbs+VhgFyUOuixZSX67qpq7mf2GPNOUuh2pEMlsDYMX58w7te6N71lfaHCWIFHlStpwMcB/Q==
+keen-dataviz@^3.15.5:
+  version "3.15.5"
+  resolved "https://registry.yarnpkg.com/keen-dataviz/-/keen-dataviz-3.15.5.tgz#d6ffb8eb41ca42581bf89401b93793c539ab8f2c"
+  integrity sha512-jTVAbsdx++7uWagD6kM/HJQOfzxM3MIPqps4/HU+AMKtYLH66j5+2Y03+40X7LTD33jbmgIt/Mp6iMzyn7tplQ==
   dependencies:
     c3 "^0.7.2"
     d3 "^5.11.0"

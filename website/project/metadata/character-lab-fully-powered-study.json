@@ -19,7 +19,8 @@
 			"options": [
 				"Pilot",
 				"Fully-Powered"
-			]
+			],
+			"required": true
 		}, {
             "qid": "q2",
             "nav": "Study design",
@@ -48,12 +49,14 @@
 				"id": "name",
 				"title": "Team member name",
 				"type": "string",
-				"format": "text"
+				"format": "text",
+				"required": true
 			}, {
 			    "id": "institution",
 				"title": "Team member institution",
 				"type": "string",
-				"format": "text"
+				"format": "text",
+				"required": true
 			}, {
 			    "id": "role",
 				"title": "Team member role",
@@ -67,7 +70,8 @@
 					"Graduate scientist",
 					"Lab manager",
 					"Lab member"
-				]
+				],
+				"required": true
 			}]
 		}, {
             "qid": "q4",
@@ -97,7 +101,8 @@
                     "Lab manager",
                     "Lab member"
                 ]
-            }]
+            }],
+			"required": false
 		}, {
             "qid": "q5",
             "nav": "Third team member",
@@ -126,7 +131,8 @@
                     "Lab manager",
                     "Lab member"
                 ]
-            }]
+            }],
+			"required": false
 		}, {
            "qid": "q6",
             "nav": "Fourth team member",
@@ -155,7 +161,8 @@
                     "Lab manager",
                     "Lab member"
                 ]
-            }]
+            }],
+			"required": false
 		}, {
            "qid": "q7",
             "nav": "Fifth team member",
@@ -184,13 +191,23 @@
                     "Lab manager",
                     "Lab member"
                 ]
-            }]
+            }],
+			"required": false
 		}]
 	}, {
 		"id": "page3",
 		"title": "Background and Study Intent",
 		"questions": [{
-            "qid": "q8",
+			"qid": "q8",
+			"nav": "Study description",
+			"title": "Study description",
+			"description": null,
+			"help": null,
+			"type": "string",
+			"format": "textarea",
+			"required": true
+		}, {
+            "qid": "q9",
             "nav": "Primary outcomes",
             "title": "Primary outcomes",
             "description": null,
@@ -198,7 +215,7 @@
             "format": "textarea",
             "required": false
         }, {
-            "qid": "q9",
+            "qid": "q10",
             "nav": "Number of conditions",
             "title": "Number of conditions",
             "description": null,
@@ -208,7 +225,7 @@
 			"options": ["1", "2", "3", "4", "5"],
             "required": false
         }, {
-            "qid": "q10",
+            "qid": "q11",
             "nav": "Total number of students",
             "title": "Total number of students",
             "description": null,
@@ -217,7 +234,7 @@
             "format": "text",
             "required": false
         }, {
-            "qid": "q11",
+            "qid": "q12",
             "nav": "Character strengths",
             "title": "Character strengths",
             "description": null,
@@ -248,7 +265,7 @@
 		"id": "page4",
 		"title": "Sample",
 		"questions": [{
-            "qid": "q12",
+            "qid": "q13",
             "nav": "Study grade assignment",
             "title": "Study grade assignment",
             "description": null,
@@ -263,9 +280,10 @@
 				"10th grade",
 				"11th grade",
 				"12th grade"
-			]
+			],
+			"required": true
         }, {
-            "qid": "q13",
+            "qid": "q14",
             "nav": "School stratum assignment",
             "title": "School stratum assignment",
             "description": null,
@@ -278,33 +296,25 @@
 				"Stratum C: Large, diverse, suburban and urban schools. These schools represent 15% of all middle schools and 13% of all high schools in the US.",
 				"Stratum D: Mostly Black, high # of students receiving free/reduced lunch, often urban schools. These schools represent 12% of all middle and high schools in the US.",
 				"Stratum E: Mostly White, high SES, suburban schools. These schools represent 21% of all middle and high schools in the US."
-			]
+			],
+			"required": true
         }]
     }, {
 		"id": "page5",
 		"title": "Pilot Reporting",
 		"questions": [{
-			"qid": "q14",
-			"nav": "Pilot Experience",
-			"title": "Pilot Experience",
-			"description": "How have you piloted this study on Character Lab Research Network (CLRN) and/or on your own before running this study?",
+			"qid": "q15",
+			"nav": "Piloting experience",
+			"title": "Piloting experience",
+			"description": null,
 			"help": null,
 			"type": "string",
 			"format": "textarea",
 			"required": false
 		}, {
-			"qid": "q15",
-            "nav": "Pilot Goals",
-            "title": "Pilot Goals",
-            "description": null,
-            "help": null,
-            "type": "string",
-            "format": "textarea",
-            "required": false
-		}, {
-            "qid": "q16",
-            "nav": "Pilot's Hypothesis",
-            "title": "Pilot's Hypothesis",
+			"qid": "q16",
+            "nav": "Pilot goals",
+            "title": "Pilot goals",
             "description": null,
             "help": null,
             "type": "string",
@@ -312,9 +322,18 @@
             "required": false
 		}, {
             "qid": "q17",
+            "nav": "Pilot hypotheses",
+            "title": "Pilot hypotheses",
+            "description": null,
+            "help": null,
+            "type": "string",
+            "format": "textarea",
+            "required": false
+		}, {
+            "qid": "q18",
             "nav": "Feedback",
-            "title": "Feedback",
-            "description": "How did you use feedback from a CLIPster/SRL while developing your pilot?",
+            "title": "How did you use feedback from a CLIPster/SRL while developing your pilot?",
+            "description": null,
             "help": null,
             "type": "string",
             "format": "textarea",
@@ -324,37 +343,37 @@
 		"id": "page6",
 		"title": "Post-Pilot Reporting",
 		"questions": [{
-            "qid": "q18",
+            "qid": "q19",
             "nav": "Pilot Analysis",
-            "title": "Pilot Analysis",
-            "description": "Did you see your hypothesized effects in this pilot data?",
+            "title": "Did you see your hypothesized effects in this pilot data",
+            "description": null,
             "help": null,
             "type": "string",
             "format": "textarea",
             "required": false
 		}, {
-            "qid": "q19",
-            "nav": "Pilot Data",
-            "title": "Pilot Data",
-            "description": "Did anything merge in this pilot data that you weren't expecting?",
-            "help": null,
-            "type": "string",
-            "format": "textarea",
-            "required": false
-        }, {
             "qid": "q20",
-            "nav": "Pilot Concerns",
-            "title": "Pilot Concerns",
-            "description": "What are you most concerned about in this pilot data?",
+            "nav": "Pilot Data",
+            "title": "Did anything merge in this pilot data that you weren't expecting?",
+			"description": null,
             "help": null,
             "type": "string",
             "format": "textarea",
             "required": false
         }, {
             "qid": "q21",
+            "nav": "Pilot Concerns",
+            "title": "What are you most concerned about in this pilot data?",
+			"description": null,
+            "help": null,
+            "type": "string",
+            "format": "textarea",
+            "required": false
+        }, {
+            "qid": "q22",
             "nav": "Pilot Takeaways",
-            "title": "Pilot Takeaways",
-            "description": "What are you most concerned about in this pilot data?",
+            "title": "What are your three main takeaways from this pilot?",
+			"description": null,
             "help": null,
             "type": "string",
             "format": "textarea",
@@ -364,21 +383,23 @@
 		"id": "page7",
 		"title": "Transition to Fully Powered Study",
 		"questions": [{
-            "qid": "q22",
-            "nav": "Changes to study",
-            "title": "Changes to study",
-            "description": "What changes, if any, are you making to your study design as a result of the pilot data and feedback you've received?",
-            "help": null,
-            "type": "string",
-            "format": "textarea"
-        }, {
             "qid": "q23",
-            "nav": "Changes to hypotheses",
-            "title": "Changes to hypotheses",
-            "description": "Have your hypotheses about this study changed at all following the pilot?",
+            "nav": "Changes based on piloting",
+            "title": "Changes based on piloting",
+            "description": null,
             "help": null,
             "type": "string",
-            "format": "textarea"
+            "format": "textarea",
+			"required": true
+        }, {
+            "qid": "q24",
+            "nav": "Changes to hypotheses",
+            "title": "Have your hypotheses about this study changed at all following the pilot?",
+            "description": null,
+            "help": null,
+            "type": "string",
+            "format": "textarea",
+			"required": true
         }]
 	}]
 }

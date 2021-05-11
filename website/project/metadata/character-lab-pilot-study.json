@@ -19,7 +19,8 @@
 			"options": [
 				"Pilot",
 				"Fully-Powered"
-			]
+			],
+			"required": true
 		}, {
             "qid": "q2",
             "nav": "Study design",
@@ -48,12 +49,14 @@
 				"id": "name",
 				"title": "Team member name",
 				"type": "string",
-				"format": "text"
+				"format": "text",
+				"required": true
 			}, {
 			    "id": "institution",
 				"title": "Team member institution",
 				"type": "string",
-				"format": "text"
+				"format": "text",
+				"required": true
 			}, {
 			    "id": "role",
 				"title": "Team member role",
@@ -67,7 +70,8 @@
 					"Graduate scientist",
 					"Lab manager",
 					"Lab member"
-				]
+				],
+				"required": true
 			}]
 		}, {
             "qid": "q4",
@@ -97,7 +101,8 @@
                     "Lab manager",
                     "Lab member"
                 ]
-            }]
+            }],
+            "required": false
 		}, {
             "qid": "q5",
             "nav": "Third team member",
@@ -126,7 +131,8 @@
                     "Lab manager",
                     "Lab member"
                 ]
-            }]
+            }],
+            "required": false
 		}, {
            "qid": "q6",
             "nav": "Fourth team member",
@@ -155,7 +161,8 @@
                     "Lab manager",
                     "Lab member"
                 ]
-            }]
+            }],
+            "required": false
 		}, {
            "qid": "q7",
             "nav": "Fifth team member",
@@ -184,21 +191,32 @@
                     "Lab manager",
                     "Lab member"
                 ]
-            }]
+            }],
+            "required": false
 		}]
 	}, {
 		"id": "page3",
 		"title": "Background and Study Intent",
 		"questions": [{
-            "qid": "q8",
+			"qid": "q8",
+			"nav": "Study description",
+			"title": "Study description",
+			"description": null,
+			"help": null,
+			"type": "string",
+			"format": "textarea",
+			"required": true
+		}, {
+            "qid": "q9",
             "nav": "Primary outcomes",
             "title": "Primary outcomes",
             "description": null,
+			"help": null,
             "type": "string",
             "format": "textarea",
             "required": false
         }, {
-            "qid": "q9",
+            "qid": "q10",
             "nav": "Number of conditions",
             "title": "Number of conditions",
             "description": null,
@@ -208,7 +226,7 @@
 			"options": ["1", "2", "3", "4", "5"],
             "required": false
         }, {
-            "qid": "q10",
+            "qid": "q11",
             "nav": "Total number of students",
             "title": "Total number of students",
             "description": null,
@@ -217,7 +235,7 @@
             "format": "text",
             "required": false
         }, {
-            "qid": "q11",
+            "qid": "q12",
             "nav": "Character strengths",
             "title": "Character strengths",
             "description": null,
@@ -248,7 +266,7 @@
 		"id": "page4",
 		"title": "Sample",
 		"questions": [{
-            "qid": "q12",
+            "qid": "q13",
             "nav": "Study grade assignment",
             "title": "Study grade assignment",
             "description": null,
@@ -263,9 +281,10 @@
 				"10th grade",
 				"11th grade",
 				"12th grade"
-			]
+			],
+			"required": true
         }, {
-            "qid": "q13",
+            "qid": "q14",
             "nav": "School stratum assignment",
             "title": "School stratum assignment",
             "description": null,
@@ -278,7 +297,8 @@
 				"Stratum C: Large, diverse, suburban and urban schools. These schools represent 15% of all middle schools and 13% of all high schools in the US.",
 				"Stratum D: Mostly Black, high # of students receiving free/reduced lunch, often urban schools. These schools represent 12% of all middle and high schools in the US.",
 				"Stratum E: Mostly White, high SES, suburban schools. These schools represent 21% of all middle and high schools in the US."
-			]
+			],
+            "required": true
         }]
 	}]
 }

@@ -19,7 +19,9 @@ class TestSchemaList:
 
     @pytest.fixture
     def factory_request(self, rf, url, user):
-        return rf.get(url)
+        request = rf.get(url)
+        request.user = user
+        return request
 
     @pytest.fixture
     def url(self):

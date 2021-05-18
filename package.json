@@ -22,7 +22,7 @@
     "css-loader": "5.2.4",
     "diff": "~5.0.0",
     "dropzone": "git://github.com/CenterForOpenScience/dropzone.git#aba21eb6b82cc823ac7a7a53d6e035791c082bae",
-    "exports-loader": "2.0.0",
+    "exports-loader": "3.0.0",
     "file-loader": "^6.2.0",
     "font-awesome": "^4.4.0",
     "font-awesome-webpack": "0.0.5-beta.2",

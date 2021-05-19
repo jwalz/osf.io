@@ -40,9 +40,7 @@ class TestSchemaList:
         return user
 
     def test_schemas_list_crud(self, app, url, user, egap_admin, factory_request):
-
         # test_pass_authenticated_user_can_view_schemas
-
         res = app.get(url, auth=user.auth)
         assert res.status_code == 200
         assert res.json['meta']['total'] == RegistrationSchema.objects.get_latest_versions(factory_request).count()

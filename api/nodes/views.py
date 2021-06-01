@@ -618,7 +618,7 @@ class NodeDraftRegistrationsList(JSONAPIBaseView, generics.ListCreateAPIView, No
     Use DraftRegistrationsList endpoint instead.
     """
     permission_classes = (
-        IsAdminContributor,
+        AdminContributorOrPublic,
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
     )
@@ -642,7 +642,13 @@ class NodeDraftRegistrationsList(JSONAPIBaseView, generics.ListCreateAPIView, No
     # overrides ListCreateAPIView
     def get_queryset(self):
         node = self.get_node()
-        return node.draft_registrations_active
+        auth = get_user_auth(self.request)
+        if not auth.user:
+            return DraftRegistration.objects.none()
+        # Admin contributors on the project should always see all Drafts
+        if node.has_permission(auth.user, ADMIN):
+            return node.draft_registrations_active
+        return auth.user.draft_registrations_active.filter(branched_from=node)
 
 
 class NodeDraftRegistrationDetail(JSONAPIBaseView, generics.RetrieveUpdateDestroyAPIView, DraftMixin):
@@ -707,6 +713,8 @@ class NodeRegistrationsList(JSONAPIBaseView, generics.ListCreateAPIView, NodeMix
     def get_queryset(self):
         nodes = self.get_node().registrations_all
         auth = get_user_auth(self.request)
+        if not auth:
+            return
         registrations = [node for node in nodes if node.can_view(auth)]
         return registrations
 

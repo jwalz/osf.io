@@ -132,41 +132,46 @@ class TestDraftRegistrationList(DraftRegistrationTestCase):
         assert len(data) == 1
         assert schema._id in data[0]['relationships']['registration_schema']['links']['related']['href']
 
-    def test_cannot_view_draft_list(
+    def test_read_contribs_can_view_draft_list(
             self, app, user_write_contrib, project_public,
-            user_read_contrib, user_non_contrib,
-            url_draft_registrations, group, group_mem):
-
-        # test_read_only_contributor_cannot_view_draft_list
+            user_read_contrib, url_draft_registrations):
+        # test_read_only_contributor_can_view_draft_list
         res = app.get(
             url_draft_registrations,
             auth=user_read_contrib.auth,
             expect_errors=True)
-        assert res.status_code == 403
+        assert res.status_code == 200
 
-    #   test_read_write_contributor_cannot_view_draft_list
+        # test_read_write_contributor_can_view_draft_list
         res = app.get(
             url_draft_registrations,
             auth=user_write_contrib.auth,
             expect_errors=True)
-        assert res.status_code == 403
+        assert res.status_code == 200
 
-    #   test_logged_in_non_contributor_cannot_view_draft_list
-        res = app.get(
-            url_draft_registrations,
-            auth=user_non_contrib.auth,
-            expect_errors=True)
-        assert res.status_code == 403
+    def test_cannot_view_draft_list(
+            self, app, project_public, url_draft_registrations,
+            user_non_contrib, group, group_mem):
+        # For all cases, the project is public, so API returns 200,
+        # but users should only be able to view drafts on which they are
+        # contributors, so no actual drafts should be returned
 
-    #   test_unauthenticated_user_cannot_view_draft_list
-        res = app.get(url_draft_registrations, expect_errors=True)
-        assert res.status_code == 401
+        # test_logged_in_non_contributor_cannot_view_draft_list
+        res = app.get(url_draft_registrations, auth=user_non_contrib.auth)
+        assert res.status_code == 200
+        assert not res.json['data']
 
-    #   test_osf_group_with_read_permissions
+        # test_unauthenticated_useri_cannot_view_draft_list
+        res = app.get(url_draft_registrations)
+        assert res.status_code == 200
+        assert not res.json['data']
+
+        # test_osf_group_with_read_permissions
         project_public.remove_osf_group(group)
         project_public.add_osf_group(group, permissions.READ)
-        res = app.get(url_draft_registrations, auth=group_mem.auth, expect_errors=True)
-        assert res.status_code == 403
+        res = app.get(url_draft_registrations, auth=group_mem.auth)
+        assert res.status_code == 200
+        assert not res.json['data']
 
     def test_deleted_draft_registration_does_not_show_up_in_draft_list(
             self, app, user, draft_registration, url_draft_registrations):

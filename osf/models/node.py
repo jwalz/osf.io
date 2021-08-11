@@ -2394,7 +2394,6 @@ class AbstractNode(DirtyFieldsMixin, TypedModel, AddonModelMixin, IdentifierMixi
         source_tag = self.all_tags.filter(
             system=True,
             name__in=[
-                CampaignSourceTags.Prereg.value,
                 CampaignSourceTags.OsfRegisteredReports.value,
                 CampaignSourceTags.Osf4m.value
             ]

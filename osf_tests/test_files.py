@@ -82,10 +82,7 @@ def test_file_update_respects_region(project, user, create_test_file):
     new_region = RegionFactory()
     node_settings.region = new_region
     node_settings.save()
-    test_file.save()
-    cached_project = test_file.target
-    cached_project.refresh_from_db()
-#    test_file.reload()
+    del project.osfstorage_region
 
     new_version = test_file.create_version(
         user, {

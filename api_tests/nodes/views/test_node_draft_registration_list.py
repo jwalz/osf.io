@@ -2,6 +2,7 @@ import pytest
 from django.utils import timezone
 
 from api.base.settings.defaults import API_BASE
+from api_tests.utils import UserRoles
 from framework.auth.core import Auth
 from osf.migrations import ensure_invisible_and_inactive_schema
 from osf.models import RegistrationSchema, RegistrationProvider
@@ -21,10 +22,164 @@ from website import settings
 OPEN_ENDED_SCHEMA_VERSION = 3
 SCHEMA_VERSION = 2
 
-
 @pytest.fixture(autouse=True)
 def invisible_and_inactive_schema():
     return ensure_invisible_and_inactive_schema()
+
+
+def configure_test_preconditions(user_role=None, group_role=None, is_draft_contributor=True):
+    if user_role and group_role or not (user_role or group_role):
+        raise ValueError('Must specify exactly one of "user_role" or "group_role"')
+
+    project = ProjectFactory()
+    draft = DraftRegistrationFactory(
+        initiator=project.creator,
+        branched_from=project
+    )
+
+    if user_role is UserRoles.UNAUTHENTICATED:
+        return project, None, draft
+
+    user = AuthUserFactory()
+    test_auth = user.auth
+    if user_role:
+        project.add_contributor(user, user_role.get_permissions_string())
+    else:
+        group = OSFGroupFactory(creator=user)
+        project.add_osf_group(group, user_role.get_permissions_string())
+
+    if is_draft_contributor:
+        draft.add_contributor(user, 'ADMIN')
+
+    return project, test_auth, draft
+
+
+def make_api_url(project, version='2.20'):
+    return f'/{API_BASE}nodes/{project._id}/draft_registrations/?version={version}'
+
+
+@pytest.mark.django_db
+class TestNodeDraftRegistrationListGETPermissions:
+
+    @pytest.mark.parametrize('project_role', UserRoles.contributor_roles())
+    @pytest.mark.parametrize('is_draft_contributor', [True, False])
+    def test_status_code__contributor__direct(self, project_role, is_draft_contributor, app):
+        test_project, test_auth, _ = configure_test_preconditions(
+            user_role=project_role, is_draft_contributor=is_draft_contributor
+        )
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        assert resp.status_code == 200
+
+    @pytest.mark.parametrize('project_role', UserRoles.contributor_roles())
+    @pytest.mark.parametrize('is_draft_contributor', [True, False])
+    def test_status_code__contributor__group(self, project_role, is_draft_contributor, app):
+        test_project, test_auth, _ = configure_test_preconditions(
+            group_role=project_role, is_draft_contributor=is_draft_contributor
+        )
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        assert resp.status_code == 200
+
+    @pytest.mark.parametrize('role', [UserRoles.NONCONTRIB, UserRoles.UNAUTHENTICATED])
+    def test_status_code__noncontributor(self, project_role, app):
+        test_project, test_auth, _ = configure_test_preconditions(
+            user_role=project_role, is_draft_contributor=False
+        )
+        expected_status_code = 403 if test_auth else 401
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        assert resp.status_code == expected_status_code
+
+    def test_status_code__project_noncontributor_but_draft_contributor(self, app):
+        test_project, test_auth, _ = configure_test_preconditions(
+            user_role=UserRoles.NONCONTRIB, is_draft_contributor=True
+        )
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        assert resp.status_code == 403
+
+    @pytest.mark.parametrize('role', UserRoles)
+    def test_status_code__deleted(self, role, app):
+        test_project, test_auth, _ = configure_test_preconditions(role=role)
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        assert resp.status_code == 410
+
+
+class TestNodeDraftRegistrationListGETBehavior:
+
+    @pytest.mark.parametrize('project_role', UserRoles.contributor_roles())
+    @pytest.mark.parametrie('role_type', ['user_role', 'group_role'])
+    def test_returned_drafts__draft_contributor(self, project_role, role_type, app):
+        test_project, test_auth, test_draft = configure_test_preconditions(
+            **{role_type: project_role, 'is_draft_contributor': True}
+        )
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        data = resp.json['data']
+
+        assert len(data) == 1
+        assert data[0]['id'] == test_draft._id
+        assert data[0]['attributes']['title'] == test_draft.title
+        assert data[0]['attributes']['description'] == test_draft.description
+
+    @pytest.mark.parametrize('role', UserRoles.contributor_roles())
+    def test_returned_drafts__draft_non_contributor(self, role, app):
+        test_project, test_auth, test_draft = configure_test_preconditions(
+            user_role=role, is_draft_contributor=False
+        )
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        data = resp.json['data']
+        assert not data
+
+    def test_returned_drafts__draft_deleted(self, app):
+        test_project, test_auth, test_draft = configure_test_preconditions(
+            user_role=UserRoles.ADMIN, is_draft_contributor=True
+        )
+        test_draft.deleted = timezone.now()
+        test_draft.save()
+
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        data = resp.json['data']
+        assert not data
+
+    def test_returned_drafts__draft_registered(self, app):
+        test_project, test_auth, test_draft = configure_test_preconditions(
+            user_role=UserRoles.ADMIN, is_draft_contributor=True
+        )
+        registration = RegistrationFactory(project=test_project, draft_registration=test_draft)
+        test_draft.registered_node = registration
+        test_draft.save()
+
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        data = resp.json['data']
+        assert not data
+
+    def test_returned_drafts__registered_node_deleted(self, app):
+        test_project, test_auth, test_draft = configure_test_preconditions(
+            user_role=UserRoles.ADMIN, is_draft_contributor=True
+        )
+        registration = RegistrationFactory(project=test_project, draft_registration=test_draft)
+        registration.deleted == timezone.now()
+        registration.save()
+        test_draft.registered_node = registration
+        test_draft.save()
+
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        data = resp.json['data']
+
+        assert len(data) == 1
+        assert data[0]['id'] == test_draft._id
+        assert data[0]['attributes']['title'] == test_draft.title
+        assert data[0]['attributes']['description'] == test_draft.description
+
+    def test_serializer_versioning(self, app):
+        test_project, test_auth, test_draft = configure_test_preconditions(
+            user_role=UserRoles.ADMIN, is_draft_contributor=True
+        )
+
+        resp = app.get(make_api_url(test_project, version='2.19'), auth=test_auth)
+        draft_attrs = resp.json['data'][0]['attributes']
+        draft_relationships = resp.json['data'][0]['relationships']
+
+        assert 'title' not in draft_attrs
+        assert 'description' not in draft_attrs
+        assert 'affiliated_institutions' not in draft_relationships
 
 
 @pytest.mark.django_db
@@ -89,141 +244,6 @@ class DraftRegistrationTestCase:
                 test_metadata[key] = {'value': response}
             return test_metadata
         return metadata
-
-
-@pytest.mark.django_db
-class TestDraftRegistrationList(DraftRegistrationTestCase):
-
-    @pytest.fixture()
-    def schema(self):
-        return RegistrationSchema.objects.get(
-            name='Open-Ended Registration',
-            schema_version=OPEN_ENDED_SCHEMA_VERSION)
-
-    @pytest.fixture()
-    def draft_registration(self, user, project_public, schema):
-        return DraftRegistrationFactory(
-            initiator=user,
-            registration_schema=schema,
-            branched_from=project_public
-        )
-
-    @pytest.fixture()
-    def url_draft_registrations(self, project_public):
-        # Specifies version to test functionality when using DraftRegistrationLegacySerializer
-        return '/{}nodes/{}/draft_registrations/?{}'.format(
-            API_BASE, project_public._id, 'version=2.19')
-
-    def test_admin_can_view_draft_list(
-            self, app, user, draft_registration, project_public,
-            schema, url_draft_registrations):
-        res = app.get(url_draft_registrations, auth=user.auth)
-        assert res.status_code == 200
-        data = res.json['data']
-        assert len(data) == 1
-
-        assert schema._id in data[0]['relationships']['registration_schema']['links']['related']['href']
-        assert data[0]['id'] == draft_registration._id
-        assert data[0]['attributes']['registration_metadata'] == {}
-
-    def test_osf_group_with_admin_permissions_can_view(
-            self, app, user, draft_registration, project_public,
-            schema, url_draft_registrations):
-        group_mem = AuthUserFactory()
-        group = OSFGroupFactory(creator=group_mem)
-        project_public.add_osf_group(group, permissions.ADMIN)
-        res = app.get(url_draft_registrations, auth=group_mem.auth, expect_errors=True)
-        assert res.status_code == 200
-        data = res.json['data']
-        assert len(data) == 1
-        assert schema._id in data[0]['relationships']['registration_schema']['links']['related']['href']
-
-    def test_cannot_view_draft_list(
-            self, app, user_write_contrib, project_public,
-            user_read_contrib, user_non_contrib,
-            url_draft_registrations, group, group_mem):
-
-        # test_read_only_contributor_cannot_view_draft_list
-        res = app.get(
-            url_draft_registrations,
-            auth=user_read_contrib.auth,
-            expect_errors=True)
-        assert res.status_code == 403
-
-    #   test_read_write_contributor_cannot_view_draft_list
-        res = app.get(
-            url_draft_registrations,
-            auth=user_write_contrib.auth,
-            expect_errors=True)
-        assert res.status_code == 403
-
-    #   test_logged_in_non_contributor_cannot_view_draft_list
-        res = app.get(
-            url_draft_registrations,
-            auth=user_non_contrib.auth,
-            expect_errors=True)
-        assert res.status_code == 403
-
-    #   test_unauthenticated_user_cannot_view_draft_list
-        res = app.get(url_draft_registrations, expect_errors=True)
-        assert res.status_code == 401
-
-    #   test_osf_group_with_read_permissions
-        project_public.remove_osf_group(group)
-        project_public.add_osf_group(group, permissions.READ)
-        res = app.get(url_draft_registrations, auth=group_mem.auth, expect_errors=True)
-        assert res.status_code == 403
-
-    def test_deleted_draft_registration_does_not_show_up_in_draft_list(
-            self, app, user, draft_registration, url_draft_registrations):
-        draft_registration.deleted = timezone.now()
-        draft_registration.save()
-        res = app.get(url_draft_registrations, auth=user.auth)
-        assert res.status_code == 200
-        data = res.json['data']
-        assert len(data) == 0
-
-    def test_draft_with_registered_node_does_not_show_up_in_draft_list(
-            self, app, user, project_public, draft_registration, url_draft_registrations):
-        reg = RegistrationFactory(project=project_public, draft_registration=draft_registration)
-        draft_registration.registered_node = reg
-        draft_registration.save()
-        res = app.get(url_draft_registrations, auth=user.auth)
-        assert res.status_code == 200
-        data = res.json['data']
-        assert len(data) == 0
-
-    def test_draft_with_deleted_registered_node_shows_up_in_draft_list(
-            self, app, user, project_public,
-            draft_registration, schema,
-            url_draft_registrations):
-        reg = RegistrationFactory(project=project_public, draft_registration=draft_registration)
-        draft_registration.registered_node = reg
-        draft_registration.save()
-        reg.deleted = timezone.now()
-        reg.save()
-        res = app.get(url_draft_registrations, auth=user.auth)
-        assert res.status_code == 200
-        data = res.json['data']
-        assert len(data) == 1
-        assert schema._id in data[0]['relationships']['registration_schema']['links']['related']['href']
-        assert data[0]['id'] == draft_registration._id
-        assert data[0]['attributes']['registration_metadata'] == {}
-
-    def test_draft_registration_serializer_usage(self, app, user, project_public, draft_registration):
-        # Tests the usage of DraftRegistrationDetailSerializer for version 2.20
-        url_draft_registrations = '/{}nodes/{}/draft_registrations/?{}'.format(
-            API_BASE, project_public._id, 'version=2.20')
-
-        res = app.get(url_draft_registrations, auth=user.auth)
-        assert res.status_code == 200
-        data = res.json['data']
-        assert len(data) == 1
-
-        # Set of fields that DraftRegistrationLegacySerializer does not provide
-        assert data[0]['attributes']['title']
-        assert data[0]['attributes']['description']
-        assert data[0]['relationships']['affiliated_institutions']
 
 
 @pytest.mark.django_db

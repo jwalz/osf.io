@@ -355,3 +355,22 @@ class NodeLinksShowIfVersion(ShowIfVersion):
         max_version = '2.0'
         deprecated_message = 'This feature is deprecated as of version 2.1'
         super(NodeLinksShowIfVersion, self).__init__(min_version, max_version, deprecated_message)
+
+
+class NodeDraftRegistrationListPermission(permissions.BasePermission):
+    """
+    NodeDraftRegistrationsListPermission
+    GET: Any contributors on the Node (direct or via groups)
+    POST: Only Admin contributors (not Admin group members)
+
+    Note, users will only see Drafts on which they are also contributors
+    """
+    acceptable_models = (AbstractNode)
+
+    def has_object_permission(self, request, view, obj):
+        assert_resource_type(obj, self.acceptable_models)
+        auth = get_user_auth(request)
+        if request.method in permissions.SAFE_METHODS:
+            return obj.has_permission(auth.user, osf_permissions.READ)
+        else:
+            return obj.is_admin_contributor(auth.user)

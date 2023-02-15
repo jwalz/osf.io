@@ -89,6 +89,7 @@ from api.nodes.permissions import (
     ExcludeWithdrawals,
     NodeLinksShowIfVersion,
     ReadOnlyIfWithdrawn,
+    NodeDraftRegistrationsListPermission,
 )
 from api.nodes.serializers import (
     NodeSerializer,
@@ -622,7 +623,7 @@ class NodeDraftRegistrationsList(JSONAPIBaseView, generics.ListCreateAPIView, No
     Use DraftRegistrationsList endpoint instead.
     """
     permission_classes = (
-        IsAdminContributor,
+        NodeDraftRegistrationsListPermission,
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
     )
@@ -645,8 +646,9 @@ class NodeDraftRegistrationsList(JSONAPIBaseView, generics.ListCreateAPIView, No
 
     # overrides ListCreateAPIView
     def get_queryset(self):
+        user = get_user_auth(self.request).user
         node = self.get_node()
-        return node.draft_registrations_active
+        return user.draft_registrations_active.filter(branched_from=node.id)
 
 
 class NodeDraftRegistrationDetail(JSONAPIBaseView, generics.RetrieveUpdateDestroyAPIView, DraftMixin):

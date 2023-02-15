@@ -32,13 +32,9 @@ def configure_test_preconditions(user_role=None, group_role=None, is_draft_contr
         raise ValueError('Must specify exactly one of "user_role" or "group_role"')
 
     project = ProjectFactory()
-    draft = DraftRegistrationFactory(
-        initiator=project.creator,
-        branched_from=project
-    )
 
     if user_role is UserRoles.UNAUTHENTICATED:
-        return project, None, draft
+        return project, None, DraftRegistrationFactory(branched_from=project)
 
     user = AuthUserFactory()
     test_auth = user.auth
@@ -48,8 +44,10 @@ def configure_test_preconditions(user_role=None, group_role=None, is_draft_contr
         group = OSFGroupFactory(creator=user)
         project.add_osf_group(group, user_role.get_permissions_string())
 
-    if is_draft_contributor:
-        draft.add_contributor(user, 'ADMIN')
+    draft = DraftRegistrationFactory(
+        initiator=user if is_draft_contributor else project.creator,
+        branched_from=project
+    )
 
     return project, test_auth, draft
 
@@ -159,6 +157,21 @@ class TestNodeDraftRegistrationListGETBehavior:
         registration.save()
         test_draft.registered_node = registration
         test_draft.save()
+
+        resp = app.get(make_api_url(test_project), auth=test_auth)
+        data = resp.json['data']
+
+        assert len(data) == 1
+        assert data[0]['id'] == test_draft._id
+        assert data[0]['attributes']['title'] == test_draft.title
+        assert data[0]['attributes']['description'] == test_draft.description
+
+    def test_returned_drafts__excludes_drafts_from_other_projects(self, app):
+        test_project, test_auth, test_draft = configure_test_preconditions(
+            user_role=UserRoles.ADMIN, is_draft_contributor=True
+        )
+        # Create a random Draft for the user
+        DraftRegistrationFactory(initiator=test_draft.initiator)
 
         resp = app.get(make_api_url(test_project), auth=test_auth)
         data = resp.json['data']

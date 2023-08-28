@@ -357,6 +357,8 @@ class PreprintProvider(AbstractProvider):
     )
     preprint_word = models.CharField(max_length=10, choices=PREPRINT_WORD_CHOICES, default='preprint')
     subjects_acceptable = DateTimeAwareJSONField(blank=True, default=list)
+    supported_citation_styles = models.ManyToManyField('osf.CitationStyle', related_name='supporting_providers')
+    assertions_enabled = models.BooleanField(default=True, null=True)
 
     class Meta:
         permissions = (

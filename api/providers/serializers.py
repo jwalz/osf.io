@@ -215,6 +215,7 @@ class PreprintProviderSerializer(MetricsSerializerMixin, ProviderSerializer):
     reviews_workflow = ser.ChoiceField(choices=Workflows.choices())
     reviews_comments_private = ser.BooleanField()
     reviews_comments_anonymous = ser.BooleanField()
+    assertions_enabled = ser.BooleanField(read_only=True, allow_null=True)
 
     links = LinksField({
         'self': 'get_absolute_url',
@@ -240,6 +241,11 @@ class PreprintProviderSerializer(MetricsSerializerMixin, ProviderSerializer):
     brand = RelationshipField(
         related_view='brands:brand-detail',
         related_view_kwargs={'brand_id': '<brand.id>'},
+    )
+
+    supported_citation_styles = RelationshipField(
+        related_view='providers:preprint-providers:citation-styles',
+        related_view_kwargs={'provider_id': '<_id>'},
     )
 
     def get_preprints_url(self, obj):

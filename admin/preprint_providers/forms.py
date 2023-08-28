@@ -3,14 +3,28 @@ import bleach
 from django import forms
 from django.contrib.auth.models import Group
 
-from osf.models import PreprintProvider, Subject
-from admin.base.utils import (get_subject_rules, get_toplevel_subjects,
-    get_nodelicense_choices, get_defaultlicense_choices, validate_slug)
+from admin.base.utils import (
+    get_defaultlicense_choices,
+    get_nodelicense_choices,
+    get_subject_rules,
+    get_toplevel_subjects,
+    validate_slug
+)
+from osf.models import (
+    CitationStyle,
+    PreprintProvider,
+    Subject
+)
 
 
 class PreprintProviderForm(forms.ModelForm):
     toplevel_subjects = forms.MultipleChoiceField(widget=forms.CheckboxSelectMultiple(), required=False)
     subjects_chosen = forms.CharField(widget=forms.HiddenInput(), required=False)
+    citation_styles = forms.ModelMultipleChoiceField(
+        queryset=CitationStyle.objects.all(),
+        widget=forms.CheckboxSelectMultiple(),
+        required=False
+    )
     _id = forms.SlugField(
         required=True,
         help_text='URL Slug',

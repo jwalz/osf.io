@@ -13,6 +13,7 @@ from rest_framework.parsers import FileUploadParser
 from rest_framework.response import Response
 
 from api.actions.serializers import RegistrationActionSerializer
+from api.citations.serializers import CitationSerializer
 from api.collection_submission_actions.serializers import CollectionSubmissionActionSerializer
 from api.base import permissions as base_permissions
 from osf.models.action import RegistrationAction, CollectionSubmissionAction
@@ -485,6 +486,21 @@ class PreprintProviderPreprintList(JSONAPIBaseView, generics.ListAPIView, Prepri
                     'reviews_state_counts': provider.get_reviewable_state_counts(),
                 }
         return context
+
+
+class PreprintProviderCitationStylesList(JSONAPIBaseView, generics.ListAPIView):
+
+    provider_class = PreprintProvider
+    permission_classes = (
+        drf_permissions.IsAuthenticatedOrReadOnly,
+        base_permissions.TokenHasScope,
+    )
+    serializer_class = CitationSerializer
+    view_name = 'citation-styles'
+
+    def get_default_queryset(self):
+        provider = self.get_provider()
+        return provider.supported_citation_styles.all()
 
 
 class CollectionProviderSubmissionList(JSONAPIBaseView, generics.ListCreateAPIView, ListFilterMixin, ProviderMixin):

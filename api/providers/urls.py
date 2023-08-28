@@ -20,6 +20,7 @@ urlpatterns = [
                     re_path(r'^$', views.PreprintProviderList.as_view(), name=views.PreprintProviderList.view_name),
                     re_path(r'^(?P<provider_id>\w+)/$', views.PreprintProviderDetail.as_view(), name=views.PreprintProviderDetail.view_name),
                     re_path(r'^(?P<provider_id>\w+)/licenses/$', views.PreprintProviderLicenseList.as_view(), name=views.PreprintProviderLicenseList.view_name),
+                    re_path(r'^(?P<provider_id>\w+)/citation_styles/$', views.PreprintProviderLicenseList.as_view(), name=views.PreprintProviderCitationStylesList.view_name),
                     re_path(r'^(?P<provider_id>\w+)/preprints/$', views.PreprintProviderPreprintList.as_view(), name=views.PreprintProviderPreprintList.view_name),
                     re_path(r'^(?P<provider_id>\w+)/subjects/$', views.PreprintProviderSubjects.as_view(), name=views.PreprintProviderSubjects.view_name),
                     re_path(r'^(?P<provider_id>\w+)/subjects/highlighted/$', views.PreprintProviderHighlightedSubjectList.as_view(), name=views.PreprintProviderHighlightedSubjectList.view_name),

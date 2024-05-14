@@ -648,8 +648,9 @@ class NodeDraftRegistrationsList(JSONAPIBaseView, generics.ListCreateAPIView, No
 
     # overrides ListCreateAPIView
     def get_queryset(self):
+        user = self.request.user
         node = self.get_node()
-        return node.draft_registrations_active
+        return user.draft_registrations_active.filter(branched_from=node)
 
 
 class NodeDraftRegistrationDetail(JSONAPIBaseView, generics.RetrieveUpdateDestroyAPIView, DraftMixin):

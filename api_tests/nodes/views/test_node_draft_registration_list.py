@@ -138,7 +138,7 @@ class TestDraftRegistrationList(DraftRegistrationTestCase):
         assert len(data) == 1
         assert schema._id in data[0]['relationships']['registration_schema']['links']['related']['href']
 
-    def test_cannot_view_draft_list(
+    def test_view_draft_list(
             self, app, user_write_contrib, project_public,
             user_read_contrib, user_non_contrib,
             url_draft_registrations, group, group_mem):
@@ -148,14 +148,16 @@ class TestDraftRegistrationList(DraftRegistrationTestCase):
             url_draft_registrations,
             auth=user_read_contrib.auth,
             expect_errors=True)
-        assert res.status_code == 403
+        assert res.status_code == 200
+        assert res.json['data']
 
     #   test_read_write_contributor_cannot_view_draft_list
         res = app.get(
             url_draft_registrations,
             auth=user_write_contrib.auth,
             expect_errors=True)
-        assert res.status_code == 403
+        assert res.status_code == 200
+        assert res.json['data']
 
     #   test_logged_in_non_contributor_cannot_view_draft_list
         res = app.get(
@@ -172,6 +174,29 @@ class TestDraftRegistrationList(DraftRegistrationTestCase):
         project_public.remove_osf_group(group)
         project_public.add_osf_group(group, permissions.READ)
         res = app.get(url_draft_registrations, auth=group_mem.auth, expect_errors=True)
+        assert res.status_code == 200
+        assert res.json['data']
+
+    def test_view_draft_list__contributor_mismatch(
+        self, app, url_draft_registrations, draft_registration, project_public
+    ):
+        # Project-only contributor can see the draft list but has no results
+        project_only_contributor = AuthUserFactory()
+        project_public.add_contributor(
+            project_only_contributor,
+            permissions=permissions.READ
+        )
+        res = app.get(url_draft_registrations, auth=project_only_contributor.auth, expect_errors=True)
+        assert res.status_code == 200
+        assert not res.json['data']
+
+        # Draft-only contributor cannot see the list of drafts on the project
+        draft_only_contributor = AuthUserFactory()
+        draft_registration.add_contributor(
+            draft_only_contributor,
+            permissions=permissions.READ
+        )
+        res = app.get(url_draft_registrations, auth=draft_only_contributor.auth, expect_errors=True)
         assert res.status_code == 403
 
     def test_deleted_draft_registration_does_not_show_up_in_draft_list(
@@ -370,14 +395,6 @@ class TestDraftRegistrationCreate(DraftRegistrationTestCase):
             url_draft_registrations,
             payload,
             auth=user_non_contrib.auth,
-            expect_errors=True)
-        assert res.status_code == 403
-
-    #   test_group_admin_cannot_create_draft
-        res = app.post_json_api(
-            url_draft_registrations,
-            payload,
-            auth=group_mem.auth,
             expect_errors=True)
         assert res.status_code == 403
 

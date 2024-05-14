@@ -22,13 +22,18 @@ from api.base.views import JSONAPIBaseView
 from api.base import permissions as base_permissions
 from api.cedar_metadata_records.serializers import CedarMetadataRecordsListSerializer
 from api.cedar_metadata_records.utils import can_view_record
-from api.nodes.permissions import ContributorOrPublic, ExcludeWithdrawals
+from api.nodes.permissions import ContributorOrPublic
 from api.files import annotations
-from api.files.permissions import IsPreprintFile
-from api.files.permissions import CheckedOutOrAdmin
-from api.files.serializers import FileSerializer
-from api.files.serializers import FileDetailSerializer
-from api.files.serializers import FileVersionSerializer
+from api.files.permissions import (
+    CheckedOutOrAdmin,
+    IsNotWithdrawnRegistrationFile,
+    IsPreprintFile,
+)
+from api.files.serializers import (
+    FileSerializer,
+    FileDetailSerializer,
+    FileVersionSerializer,
+)
 from osf.utils.permissions import ADMIN
 
 
@@ -72,7 +77,7 @@ class FileDetail(JSONAPIBaseView, generics.RetrieveUpdateAPIView, FileMixin):
         CheckedOutOrAdmin,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, 'target'),
-        PermissionWithGetter(ExcludeWithdrawals, 'target'),
+        IsNotWithdrawnRegistrationFile,
     )
 
     required_read_scopes = [CoreScopes.NODE_FILE_READ]
@@ -120,7 +125,7 @@ class FileVersionsList(JSONAPIBaseView, generics.ListAPIView, FileMixin):
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, 'target'),
-        PermissionWithGetter(ExcludeWithdrawals, 'target'),
+        IsNotWithdrawnRegistrationFile,
     )
 
     required_read_scopes = [CoreScopes.NODE_FILE_READ]
@@ -154,7 +159,7 @@ class FileVersionDetail(JSONAPIBaseView, generics.RetrieveAPIView, FileMixin):
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, node_from_version),
-        PermissionWithGetter(ExcludeWithdrawals, 'target'),
+        IsNotWithdrawnRegistrationFile,
     )
 
     required_read_scopes = [CoreScopes.NODE_FILE_READ]
@@ -186,7 +191,7 @@ class FileCedarMetadataRecordsList(JSONAPIBaseView, generics.ListAPIView, ListFi
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, 'target'),
-        PermissionWithGetter(ExcludeWithdrawals, 'target'),
+        IsNotWithdrawnRegistrationFile,
     )
     required_read_scopes = [CoreScopes.CEDAR_METADATA_RECORD_READ]
     required_write_scopes = [CoreScopes.NULL]
@@ -197,6 +202,8 @@ class FileCedarMetadataRecordsList(JSONAPIBaseView, generics.ListAPIView, ListFi
     view_name = 'file-cedar-metadata-records-list'
 
     def get_default_queryset(self):
+        file = self.get_file()
+        self.check_object_permissions(file)
         guid = self.get_file().get_guid()
         if not guid:
             return CedarMetadataRecord.objects.none()

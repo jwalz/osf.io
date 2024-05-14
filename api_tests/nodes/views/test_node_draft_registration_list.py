@@ -126,22 +126,10 @@ class TestDraftRegistrationList(DraftRegistrationTestCase):
         assert data[0]['id'] == draft_registration._id
         assert data[0]['attributes']['registration_metadata'] == {}
 
-    def test_osf_group_with_admin_permissions_can_view(
-            self, app, user, draft_registration, project_public,
-            schema, url_draft_registrations):
-        group_mem = AuthUserFactory()
-        group = OSFGroupFactory(creator=group_mem)
-        project_public.add_osf_group(group, permissions.ADMIN)
-        res = app.get(url_draft_registrations, auth=group_mem.auth, expect_errors=True)
-        assert res.status_code == 200
-        data = res.json['data']
-        assert len(data) == 1
-        assert schema._id in data[0]['relationships']['registration_schema']['links']['related']['href']
-
     def test_view_draft_list(
             self, app, user_write_contrib, project_public,
             user_read_contrib, user_non_contrib,
-            url_draft_registrations, group, group_mem):
+            url_draft_registrations):
 
         # test_read_only_contributor_cannot_view_draft_list
         res = app.get(
@@ -169,13 +157,6 @@ class TestDraftRegistrationList(DraftRegistrationTestCase):
     #   test_unauthenticated_user_cannot_view_draft_list
         res = app.get(url_draft_registrations, expect_errors=True)
         assert res.status_code == 401
-
-    #   test_osf_group_with_read_permissions
-        project_public.remove_osf_group(group)
-        project_public.add_osf_group(group, permissions.READ)
-        res = app.get(url_draft_registrations, auth=group_mem.auth, expect_errors=True)
-        assert res.status_code == 200
-        assert res.json['data']
 
     def test_view_draft_list__contributor_mismatch(
         self, app, url_draft_registrations, draft_registration, project_public

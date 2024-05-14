@@ -74,23 +74,24 @@ from api.institutions.serializers import InstitutionSerializer
 from api.logs.serializers import NodeLogSerializer
 from api.nodes.filters import NodesFilterMixin
 from api.nodes.permissions import (
+    AdminDeletePermissions,
+    AdminOrPublic,
+    AdminContributorOrPublic,
+    ContributorDetailPermissions,
+    ContributorOrPublic,
+    ContributorReadableAdminWriteable,
+    ExcludeWithdrawals,
     IsAdmin,
     IsAdminContributor,
-    IsPublic,
-    AdminOrPublic,
-    WriteAdmin,
-    ContributorOrPublic,
-    AdminContributorOrPublic,
-    RegistrationAndPermissionCheckForPointers,
-    ContributorDetailPermissions,
-    ReadOnlyIfRegistration,
-    NodeGroupDetailPermissions,
     IsContributorOrGroupMember,
-    AdminDeletePermissions,
-    WriteOrPublicForRelationshipInstitutions,
-    ExcludeWithdrawals,
+    IsPublic,
+    NodeGroupDetailPermissions,
     NodeLinksShowIfVersion,
+    ReadOnlyIfRegistration,
     ReadOnlyIfWithdrawn,
+    RegistrationAndPermissionCheckForPointers,
+    WriteAdmin,
+    WriteOrPublicForRelationshipInstitutions,
 )
 from api.nodes.serializers import (
     NodeSerializer,
@@ -625,7 +626,7 @@ class NodeDraftRegistrationsList(JSONAPIBaseView, generics.ListCreateAPIView, No
     Use DraftRegistrationsList endpoint instead.
     """
     permission_classes = (
-        IsAdminContributor,
+        ContributorReadableAdminWriteable,
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
     )

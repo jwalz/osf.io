@@ -104,7 +104,7 @@ class IsAdmin(permissions.BasePermission):
         auth = get_user_auth(request)
         return obj.has_permission(auth.user, osf_permissions.ADMIN)
 
-class ContributorVisibleAdminWriteable(permissions.BasePermission):
+class ContributorReadableAdminWriteable(permissions.BasePermission):
 
     acceptable_models = (AbstractNode, )
 

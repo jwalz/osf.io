@@ -81,6 +81,21 @@ class RegistrationModerationStates(ModerationEnum):
     WITHDRAWN = 10
 
     @classmethod
+    def public_states(cls):
+        """Useful shorthand for helping generate test preconditions."""
+        return {
+            cls.ACCEPTED,
+            cls.PENDING_WITHDRAW_REQUEST,
+            cls.PENDING_WITHDRAW,
+            cls.WITHDRAWN
+        }
+
+    @classmethod
+    def private_states(cls):
+        """Useful shorthand for helping generate test preconditions."""
+        return set(cls) - cls.public_states
+
+    @classmethod
     def from_sanction(cls, sanction):
         '''Returns a RegistrationModerationState based on sanction's type and state.'''
         # Define every time because it gets interpreted as an enum member in the class body :(

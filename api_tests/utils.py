@@ -2,8 +2,13 @@ from blinker import ANY
 from enum import Enum
 from future.moves.urllib.parse import urlparse
 from contextlib import contextmanager
-from addons.osfstorage import settings as osfstorage_settings
 
+from django.utils import timezone
+
+from addons.osfstorage import settings as osfstorage_settings
+from api.providers.workflows import Workflows as ModerationWorkflows
+from osf.utils.workflows import RegistrationModerationStates as RegStates
+from osf_tests import factories
 
 def create_test_file(target, user, filename='test_file', create_guid=True, size=1337, sha256=None):
     osfstorage = target.get_addon('osfstorage')
@@ -103,3 +108,41 @@ class UserRoles(Enum):
         if self is UserRoles.ADMIN_USER:
             return 'admin'
         return None
+
+
+def configure_test_registration(registration=None, registration_state=RegStates.ACCEPTED, moderated=True):
+    if registration_state is RegStates.PENDING and not moderated:
+        raise ValueError('Cannot have Registration pending moderation on a non-moderated provider')
+
+    registration = registration or factories.RegistrationFactory()
+    if moderated:
+        provider = factories.RegistrationProviderFactory()
+        provider.update_group_permissions()
+        provider.reviews_workflow = ModerationWorkflows.PRE_MODERATION.value
+        provider.save()
+        registration.provider = provider
+
+    registration.moderation_state = registration_state.db_name
+    if registration_state in RegStates.public_states:
+        registration.is_public = True
+    else:
+        registration.is_public = False
+
+    if registration_state in (RegStates.REJECTED, RegStates.REVERTED):
+        registration.deleted = timezone.now()
+
+    registration.save()
+    return registration
+
+
+def configure_test_auth(resource, user_role):
+    if user_role is UserRoles.UNAUTHENTICATED:
+        return None
+
+    user = factories.AuthUserFactory()
+    if user_role is UserRoles.MODERATOR:
+        resource.provider.get_group('moderator').user_set.add(user)
+    elif user_role in UserRoles.contributor_roles():
+        resource.add_contributor(user, user_role.get_permissions_string())
+
+    return user.auth

@@ -202,6 +202,8 @@ def check_resource_permissions(resource, auth, action):
 
 
 def _check_registration_permissions(registration, auth, permission, action):
+    if registration.is_retracted:
+        return False
     if permission == permissions.READ:
         return registration.registered_from.can_view(auth)
     if action in ('copyfrom', 'upload'):

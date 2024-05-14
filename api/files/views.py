@@ -22,7 +22,7 @@ from api.base.views import JSONAPIBaseView
 from api.base import permissions as base_permissions
 from api.cedar_metadata_records.serializers import CedarMetadataRecordsListSerializer
 from api.cedar_metadata_records.utils import can_view_record
-from api.nodes.permissions import ContributorOrPublic
+from api.nodes.permissions import ContributorOrPublic, ExcludeWithdrawals
 from api.files import annotations
 from api.files.permissions import IsPreprintFile
 from api.files.permissions import CheckedOutOrAdmin
@@ -72,6 +72,7 @@ class FileDetail(JSONAPIBaseView, generics.RetrieveUpdateAPIView, FileMixin):
         CheckedOutOrAdmin,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, 'target'),
+        PermissionWithGetter(ExcludeWithdrawals, 'target'),
     )
 
     required_read_scopes = [CoreScopes.NODE_FILE_READ]
@@ -119,6 +120,7 @@ class FileVersionsList(JSONAPIBaseView, generics.ListAPIView, FileMixin):
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, 'target'),
+        PermissionWithGetter(ExcludeWithdrawals, 'target'),
     )
 
     required_read_scopes = [CoreScopes.NODE_FILE_READ]
@@ -152,6 +154,7 @@ class FileVersionDetail(JSONAPIBaseView, generics.RetrieveAPIView, FileMixin):
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, node_from_version),
+        PermissionWithGetter(ExcludeWithdrawals, 'target'),
     )
 
     required_read_scopes = [CoreScopes.NODE_FILE_READ]
@@ -183,6 +186,7 @@ class FileCedarMetadataRecordsList(JSONAPIBaseView, generics.ListAPIView, ListFi
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, 'target'),
+        PermissionWithGetter(ExcludeWithdrawals, 'target'),
     )
     required_read_scopes = [CoreScopes.CEDAR_METADATA_RECORD_READ]
     required_write_scopes = [CoreScopes.NULL]

@@ -18,7 +18,10 @@ from api_tests import utils as api_utils
 from framework.auth.core import Auth
 from osf.models import NodeLog, QuickFilesNode, Node, FileVersionUserMetadata
 from osf.utils.permissions import WRITE, READ
-from osf.utils.workflows import DefaultStates
+from osf.utils.workflows import (
+    DefaultStates,
+    RegistrationModerationStates as RegStates
+)
 from osf_tests.factories import (
     AuthUserFactory,
     CommentFactory,
@@ -30,6 +33,8 @@ from osf_tests.factories import (
 from website import settings as website_settings
 
 SessionStore = import_module(django_conf_settings.SESSION_ENGINE).SessionStore
+
+UserRoles = api_utils.UserRoles
 
 # stolen from^W^Winspired by DRF
 # rest_framework.fields.DateTimeField.to_representation
@@ -989,3 +994,68 @@ class TestShowAsUnviewed:
 
         res = app.get(url, auth=user.auth)
         assert not res.json['data']['attributes']['show_as_unviewed']
+
+
+@pytest.mark.django_db
+class TestRegistrationFiles:
+
+    @pytest.fixture()
+    def registration(self, user):
+        return RegistrationFactory(creator=user)
+
+    @pytest.fixture()
+    def file(self, user, registration):
+        return api_utils.create_test_file(registration, user, create_guid=True)
+
+    @pytest.fixture()
+    def file_url(self, file):
+        return '/{}files/{}/'.format(API_BASE, file._id)
+
+    @pytest.mark.parametrize('user_role', UserRoles)
+    def test_registration_file_detail__accepted(self, app, registration, file_url, user_role):
+        api_utils.configure_test_registration(registration=registration, registration_state=RegStates.ACCEPTED)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth)
+        assert resp.status_code == 200
+
+    @pytest.mark.parametrize('user_role', UserRoles.contributor_roles(include_moderator=True))
+    def test_registration_file_detail__pending__contributor(self, app, registration, file_url, user_role):
+        api_utils.configure_test_registration(registration=registration, registration_state=RegStates.PENDING)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth)
+        assert resp.status_code == 200
+
+    @pytest.mark.parametrize('user_role', (UserRoles.NONCONTRIB, UserRoles.UNAUTHENTICATED))
+    def test_registration_file_detail__pending__non_contributor(self, app, registration, file_url, user_role):
+        api_utils.configure_test_registration(registration=registration, registration_state=RegStates.PENDING)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth)
+        assert resp.status_code == 401 if test_auth else 403
+
+    @pytest.mark.parametrize('user_role', UserRoles.contributor_roles(include_moderator=True))
+    def test_registration_file_detail__embargo__contributor(self, app, registration, file_url, user_role):
+        api_utils.configure_test_registration(registration=registration, registration_state=RegStates.PENDING)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth)
+        assert resp.status_code == 200
+
+    @pytest.mark.parametrize('user_role', (UserRoles.NONCONTRIB, UserRoles.UNAUTHENTICATED))
+    def test_registration_file_detail__embargo__non_contributor(self, app, registration, file_url, user_role):
+        api_utils.configure_test_registration(registration=registration, registration_state=RegStates.PENDING)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth)
+        assert resp.status_code == 401 if test_auth else 403
+
+    @pytest.mark.parametrize('user_role', UserRoles)
+    def test_registration_file_detail__withdrawn(self, app, registration, file_url, user_role):
+        api_utils.configure_test_registration(registration=registration, registration_state=RegStates.WITHDRAWN)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth)
+        assert resp.status_code == 401 if test_auth else 403
+
+    @pytest.mark.parametrize('user_role', UserRoles)
+    def test_registration_file_detail__rejected(self, app, registration, file_url, user_role):
+        api_utils.configure_test_registration(registration=registration, registration_state=RegStates.REJECTED)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth)
+        assert resp.status_code == 401 if test_auth else 403

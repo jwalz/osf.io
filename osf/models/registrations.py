@@ -57,10 +57,10 @@ from osf.utils.workflows import (
 )
 from website import settings
 from website.archiver import ARCHIVER_INITIATED
+from website.citations.utils import datetime_to_csl
 from website.identifiers.tasks import update_doi_metadata_on_change
 from website.project import signals
 from website.util import api_v2_url
-
 
 logger = logging.getLogger(__name__)
 
@@ -409,6 +409,11 @@ class Registration(AbstractNode):
             value = entry['field_value']
             self.additional_metadata[key] = value
         self.save()
+
+    @property
+    def csl(self):
+        node_csl = super().csl
+        node_csl['issued'] = datetime_to_csl(self.registered_date)
 
     def can_view(self, auth):
         if super().can_view(auth):

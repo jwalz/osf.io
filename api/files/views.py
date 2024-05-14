@@ -171,12 +171,10 @@ class FileVersionDetail(JSONAPIBaseView, generics.RetrieveAPIView, FileMixin):
 
     # overrides RetrieveAPIView
     def get_object(self):
+        # May raise a permission denied
         self.file = self.get_file()
         maybe_version = self.file.get_version(self.kwargs[self.version_lookup_url_kwarg])
 
-        # May raise a permission denied
-        # Kinda hacky but versions have no reference to node or file
-        self.check_object_permissions(self.request, self.file)
         return utils.get_object_or_error(FileVersion, getattr(maybe_version, '_id', ''), self.request)
 
     def get_serializer_context(self):
@@ -202,8 +200,6 @@ class FileCedarMetadataRecordsList(JSONAPIBaseView, generics.ListAPIView, ListFi
     view_name = 'file-cedar-metadata-records-list'
 
     def get_default_queryset(self):
-        file = self.get_file()
-        self.check_object_permissions(file)
         guid = self.get_file().get_guid()
         if not guid:
             return CedarMetadataRecord.objects.none()

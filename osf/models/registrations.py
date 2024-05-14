@@ -414,6 +414,7 @@ class Registration(AbstractNode):
     def csl(self):
         node_csl = super().csl
         node_csl['issued'] = datetime_to_csl(self.registered_date)
+        return node_csl
 
     def can_view(self, auth):
         if super().can_view(auth):

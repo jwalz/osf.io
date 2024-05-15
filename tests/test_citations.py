@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
+
 import pytest
 from django.utils import timezone
 from nose.tools import *  # noqa
 
 from framework.auth.core import Auth
+from osf.models import OSFUser
 from osf_tests.factories import (
     fake,
     fake_email,
@@ -15,11 +18,11 @@ from osf_tests.factories import (
 )
 from scripts import parse_citation_styles
 from tests.base import OsfTestCase
-from osf.models import OSFUser
 from website.citations.utils import datetime_to_csl
 from website.util import api_url_for
 
 pytestmark = pytest.mark.django_db
+
 
 class CitationsUtilsTestCase(OsfTestCase):
     def test_datetime_to_csl(self):
@@ -200,3 +203,16 @@ class CitationsViewsTestCase(OsfTestCase):
         node.save()
         response = self.app.get('/api/v1' + '/project/' + node._id + '/citation/', auto_follow=True, auth=user.auth)
         assert_true(response.json)
+
+
+class CitationRegistrationTestCase(OsfTestCase):
+
+    def test_registration_citation_date(self):
+        registration = RegistrationFactory()
+        registration.registered_date = timezone.now() - timedelta(days=2)
+        registration.save()
+        registration.set_title('Node log created!')
+        assert_equal(
+            registration.csl['issued'],
+            datetime_to_csl(registration.registered_date)
+        )

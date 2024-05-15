@@ -921,20 +921,20 @@ class TestPreprintFileView:
 
         # Unauthenticated
         res = app.get(file_url, expect_errors=True)
-        assert res.status_code == 401
+        assert res.status_code == 410
 
         # Noncontrib
         res = app.get(file_url, auth=other_user.auth, expect_errors=True)
-        assert res.status_code == 403
+        assert res.status_code == 410
 
         # Write contributor
         preprint.add_contributor(other_user, WRITE, save=True)
         res = app.get(file_url, auth=other_user.auth, expect_errors=True)
-        assert res.status_code == 403
+        assert res.status_code == 410
 
         # Admin contrib
         res = app.get(file_url, auth=user.auth, expect_errors=True)
-        assert res.status_code == 403
+        assert res.status_code == 410
 
 @pytest.mark.django_db
 class TestShowAsUnviewed:

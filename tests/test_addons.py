@@ -106,7 +106,7 @@ class TestAddonAuth(OsfTestCase):
         registration = WithdrawnRegistrationFactory(creator=self.user)
         url = self.build_url(nid=registration._id)
         res = self.app.get(url, auth=self.user.auth, expect_errors=True)
-        assert_Equal(res.status_code, 410)
+        assert_equal(res.status_code, 410)
 
     def test_auth_download(self):
         url = self.build_url()

@@ -123,7 +123,7 @@ def configure_test_registration(registration=None, registration_state=RegStates.
         registration.provider = provider
 
     registration.moderation_state = registration_state.db_name
-    if registration_state in RegStates.public_states:
+    if registration_state in RegStates.public_states():
         registration.is_public = True
     else:
         registration.is_public = False

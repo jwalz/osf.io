@@ -42,4 +42,4 @@ class IsNotWithdrawnRegistrationFile(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if not isinstance(obj.target, Registration):
             return True
-        return obj.target.is_retracted
+        return not obj.target.is_retracted

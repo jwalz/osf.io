@@ -648,10 +648,11 @@ class NodeDraftRegistrationsList(JSONAPIBaseView, generics.ListCreateAPIView, No
 
     # overrides ListCreateAPIView
     def get_queryset(self):
+        # calls check_object_permissions
+        node = self.get_node()
         user = self.request.user
         if user.is_anonymous:
             return DraftRegistration.objects.none()
-        node = self.get_node()
         return user.draft_registrations_active.filter(branched_from=node)
 
 

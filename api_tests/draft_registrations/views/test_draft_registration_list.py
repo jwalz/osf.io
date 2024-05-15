@@ -10,11 +10,12 @@ from api.base.settings.defaults import API_BASE
 from osf.migrations import ensure_invisible_and_inactive_schema
 from osf.models import DraftRegistration, NodeLicense, RegistrationProvider
 from osf_tests.factories import (
-    RegistrationFactory,
-    CollectionFactory,
-    ProjectFactory,
     AuthUserFactory,
-    InstitutionFactory
+    CollectionFactory,
+    DraftRegistrationFactory,
+    InstitutionFactory,
+    ProjectFactory,
+    RegistrationFactory,
 )
 from osf.utils.permissions import READ, WRITE, ADMIN
 
@@ -28,47 +29,67 @@ def invisible_and_inactive_schema():
 
 @pytest.mark.django_db
 class TestDraftRegistrationListNewWorkflow:
+
+    @pytest.fixture()
+    def admin_user(self):
+        return AuthUserFactory()
+
+    @pytest.fixture()
+    def draft_registration(self, admin_user):
+        return DraftRegistrationFactory(creator=admin_user)
+
+    @pytest.fixture()
+    def read_user(self, draft_registration):
+        read_user = AuthUserFactory()
+        draft_registration.add_contributor(read_user, READ)
+        return read_user
+
+    @pytest.fixture()
+    def write_user(self, draft_registration):
+        write_user = AuthUserFactory()
+        draft_registration.add_contributor(write_user, WRITE)
+        return write_user
+
+    @pytest.fixture()
+    def non_contributor(self):
+        return AuthUserFactory()
+
+    @pytest.fixture(auto_use=True)
+    def other_draft(self):
+        """Draft with no relevant contributors. Should not appear in any results."""
+        return DraftRegistrationFactory()
+
     @pytest.fixture()
     def url_draft_registrations(self, project_public):
         return '/{}draft_registrations/?'.format(API_BASE)
 
-    # Overrides TestDraftRegistrationList
-    def test_osf_group_with_admin_permissions_can_view(self):
-        # DraftRegistration endpoints permissions are not calculated from the node
-        return
+    def test_draft_list__admin_user(self, app, url_draft_registrations, draft_registration, admin_user):
+        response = app.get(url_draft_registrations, auth=admin_user.auth)
+        assert response.status_code == 200
+        returned_ids = set(entry['id'] for entry in response.json['data'])
+        assert returned_ids == {draft_registration._id}
 
-    # Overrides TestDraftRegistrationList
-    def test_cannot_view_draft_list(
-            self, app, user_write_contrib, project_public,
-            user_read_contrib, user_non_contrib, draft_registration,
-            url_draft_registrations, group, group_mem):
+    def test_draft_list__write_user(self, app, url_draft_registrations, draft_registration, write_user):
+        response = app.get(url_draft_registrations, auth=write_user.auth)
+        assert response.status_code == 200
+        returned_ids = set(entry['id'] for entry in response.json['data'])
+        assert returned_ids == {draft_registration._id}
 
-        # test_read_only_contributor_can_view_draft_list
-        res = app.get(
-            url_draft_registrations,
-            auth=user_read_contrib.auth)
-        assert res.status_code == 200
-        assert len(res.json['data']) == 1
+    def test_draft_list__read_user(self, app, url_draft_registrations, draft_registration, read_user):
+        response = app.get(url_draft_registrations, auth=read_user.auth)
+        assert response.status_code == 200
+        returned_ids = set(entry['id'] for entry in response.json['data'])
+        assert returned_ids == {draft_registration._id}
 
-        #   test_read_write_contributor_can_view_draft_list
-        res = app.get(
-            url_draft_registrations,
-            auth=user_write_contrib.auth)
-        assert res.status_code == 200
-        assert len(res.json['data']) == 1
+    def test_draft_list__non_contributor(self, app, url_draft_registrations, draft_registration, non_contributor):
+        response = app.get(url_draft_registrations, auth=non_contributor.auth)
+        assert response.status_code == 200
+        assert not response.json['data']
 
-        #   test_logged_in_non_contributor_can_view_draft_list
-        res = app.get(
-            url_draft_registrations,
-            auth=user_non_contrib.auth,
-            expect_errors=True)
-        assert res.status_code == 200
-        assert len(res.json['data']) == 0
-
-        #   test_unauthenticated_user_cannot_view_draft_list
-        res = app.get(url_draft_registrations, expect_errors=True)
-        assert res.status_code == 401
-
+    def test_draft_list__unauthenticated(self, app, url_draft_registrations, draft_registration):
+        response = app.get(url_draft_registrations, auth=None, expect_errors=True)
+        assert response.status_code == 401
+        assert not response.json['data']
 
 class TestDraftRegistrationCreateWithNode(TestDraftRegistrationCreate):
 

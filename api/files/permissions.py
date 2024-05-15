@@ -1,8 +1,9 @@
 from rest_framework import permissions
 
+from api.base.exceptions import Gone
 from api.base.utils import get_user_auth
-from osf.models import BaseFileNode, Registration
 from api.preprints.permissions import PreprintPublishedOrAdmin
+from osf.models import BaseFileNode, Registration
 from osf.utils.permissions import ADMIN
 from osf.utils.workflows import DefaultStates
 
@@ -42,4 +43,6 @@ class IsNotWithdrawnRegistrationFile(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if not isinstance(obj.target, Registration):
             return True
-        return not obj.target.is_retracted
+        if obj.is_retracted:
+            raise Gone()
+        return True

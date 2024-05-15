@@ -1053,13 +1053,11 @@ class TestRegistrationFiles:
         api_utils.configure_test_registration(registration=registration, registration_state=RegStates.WITHDRAWN)
         test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
         resp = app.get(file_url, auth=test_auth, expect_errors=True)
-        expected_status = 403 if test_auth else 401
-        assert resp.status_code == expected_status
+        assert resp.status_code == 410
 
     @pytest.mark.parametrize('user_role', UserRoles)
     def test_registration_file_detail__rejected(self, app, registration, file_url, user_role):
         api_utils.configure_test_registration(registration=registration, registration_state=RegStates.REJECTED)
         test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
         resp = app.get(file_url, auth=test_auth, expect_errors=True)
-        expected_status = 403 if test_auth else 401
-        assert resp.status_code == expected_status
+        assert resp.status_code == 410

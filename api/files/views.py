@@ -26,7 +26,6 @@ from api.nodes.permissions import ContributorOrPublic
 from api.files import annotations
 from api.files.permissions import (
     CheckedOutOrAdmin,
-    IsNotWithdrawnRegistrationFile,
     IsPreprintFile,
 )
 from api.files.serializers import (
@@ -55,7 +54,7 @@ class FileMixin(object):
             if obj.is_deleted:
                 raise Gone(detail='The requested file is no longer available.')
 
-        if getattr(obj.target, 'deleted', None):
+        if getattr(obj.target, 'deleted', None) or getattr(obj.target, 'is_retracted', False):
             raise Gone(detail='The requested file is no longer available')
 
         if getattr(obj.target, 'is_quickfiles', False) and getattr(obj.target, 'creator'):
@@ -77,7 +76,6 @@ class FileDetail(JSONAPIBaseView, generics.RetrieveUpdateAPIView, FileMixin):
         CheckedOutOrAdmin,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, 'target'),
-        IsNotWithdrawnRegistrationFile,
     )
 
     required_read_scopes = [CoreScopes.NODE_FILE_READ]
@@ -125,7 +123,6 @@ class FileVersionsList(JSONAPIBaseView, generics.ListAPIView, FileMixin):
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, 'target'),
-        IsNotWithdrawnRegistrationFile,
     )
 
     required_read_scopes = [CoreScopes.NODE_FILE_READ]
@@ -159,7 +156,6 @@ class FileVersionDetail(JSONAPIBaseView, generics.RetrieveAPIView, FileMixin):
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, node_from_version),
-        IsNotWithdrawnRegistrationFile,
     )
 
     required_read_scopes = [CoreScopes.NODE_FILE_READ]
@@ -189,7 +185,6 @@ class FileCedarMetadataRecordsList(JSONAPIBaseView, generics.ListAPIView, ListFi
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
         PermissionWithGetter(ContributorOrPublic, 'target'),
-        IsNotWithdrawnRegistrationFile,
     )
     required_read_scopes = [CoreScopes.CEDAR_METADATA_RECORD_READ]
     required_write_scopes = [CoreScopes.NULL]

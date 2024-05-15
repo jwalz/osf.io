@@ -1,9 +1,8 @@
 from rest_framework import permissions
 
-from api.base.exceptions import Gone
 from api.base.utils import get_user_auth
 from api.preprints.permissions import PreprintPublishedOrAdmin
-from osf.models import BaseFileNode, Registration
+from osf.models import BaseFileNode
 from osf.utils.permissions import ADMIN
 from osf.utils.workflows import DefaultStates
 
@@ -36,13 +35,4 @@ class IsPreprintFile(PreprintPublishedOrAdmin):
             # If object is a primary_file on a preprint, need PreprintPublishedOrAdmin permissions to view
             return super(IsPreprintFile, self).has_object_permission(request, view, obj.target)
 
-        return True
-
-class IsNotWithdrawnRegistrationFile(permissions.BasePermission):
-
-    def has_object_permission(self, request, view, obj):
-        if not isinstance(obj.target, Registration):
-            return True
-        if obj.is_retracted:
-            raise Gone()
         return True

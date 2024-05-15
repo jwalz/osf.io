@@ -21,9 +21,10 @@ from tests.base import OsfTestCase, get_default_metaschema
 from api_tests.utils import create_test_file
 from osf_tests.factories import (
     AuthUserFactory,
+    DraftRegistrationFactory,
     ProjectFactory,
     RegistrationFactory,
-    DraftRegistrationFactory,
+    WithdrawnRegistrationFactory,
 )
 from website import settings
 from addons.base import views
@@ -98,7 +99,7 @@ class TestAddonAuth(OsfTestCase):
     def test_auth_deleted_project(self):
         self.node.deleted = timezone.now()
         self.node.save()
-        res = self.app.get(build_url(), auth=self.user.auth, expect_errors=True)
+        res = self.app.get(self.build_url(), auth=self.user.auth, expect_errors=True)
         assert_equal(res.status_code, 410)
 
     def test_auth_withdrawn_registration(self):

@@ -60,7 +60,7 @@ class TestDraftRegistrationListNewWorkflow:
         return DraftRegistrationFactory()
 
     @pytest.fixture()
-    def url_draft_registrations(self, project_public):
+    def url_draft_registrations(self):
         return '/{}draft_registrations/?'.format(API_BASE)
 
     def test_draft_list__admin_user(self, app, url_draft_registrations, draft_registration, admin_user):

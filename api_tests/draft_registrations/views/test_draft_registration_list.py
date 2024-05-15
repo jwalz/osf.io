@@ -54,7 +54,7 @@ class TestDraftRegistrationListNewWorkflow:
     def non_contributor(self):
         return AuthUserFactory()
 
-    @pytest.fixture(auto_use=True)
+    @pytest.fixture(autouse=True)
     def other_draft(self):
         """Draft with no relevant contributors. Should not appear in any results."""
         return DraftRegistrationFactory()

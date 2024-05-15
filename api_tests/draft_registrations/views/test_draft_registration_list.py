@@ -3,7 +3,6 @@ import pytest
 
 from framework.auth.core import Auth
 from api_tests.nodes.views.test_node_draft_registration_list import (
-    TestDraftRegistrationList,
     TestDraftRegistrationCreate
 )
 from api.base.settings.defaults import API_BASE
@@ -28,7 +27,7 @@ def invisible_and_inactive_schema():
 
 
 @pytest.mark.django_db
-class TestDraftRegistrationListNewWorkflow(TestDraftRegistrationList):
+class TestDraftRegistrationListNewWorkflow:
     @pytest.fixture()
     def url_draft_registrations(self, project_public):
         return '/{}draft_registrations/?'.format(API_BASE)

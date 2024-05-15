@@ -239,7 +239,7 @@ class TestDraftRegistrationList(DraftRegistrationTestCase):
         )
         assert res.status_code == 200
         assert len(res.json['data']) == 1
-        assert res.json['data'][1]['id'] == new_draft._id
+        assert res.json['data'][0]['id'] == new_draft._id
 
     def test_view_draft_list__draft_only_contributor__private_project(
         self, app, url_draft_registrations, draft_registration, project_public

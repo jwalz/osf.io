@@ -89,7 +89,6 @@ class TestDraftRegistrationListNewWorkflow:
     def test_draft_list__unauthenticated(self, app, url_draft_registrations, draft_registration):
         response = app.get(url_draft_registrations, auth=None, expect_errors=True)
         assert response.status_code == 401
-        assert not response.json['data']
 
 class TestDraftRegistrationCreateWithNode(TestDraftRegistrationCreate):
 

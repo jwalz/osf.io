@@ -212,7 +212,7 @@ class CitationRegistrationTestCase(OsfTestCase):
         registration = RegistrationFactory()
         registration.registered_date = timezone.now() - timedelta(days=2)
         registration.save()
-        registration.set_title('Node log created!')
+        registration.set_title('Node log created!', auth=None)
         assert_equal(
             registration.csl['issued'],
             datetime_to_csl(registration.registered_date)

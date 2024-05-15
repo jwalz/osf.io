@@ -13,6 +13,7 @@ from osf_tests.factories import (
     AuthUserFactory,
     NodeFactory,
     ProjectFactory,
+    RegistrationFactory,
     UnregUserFactory,
     UserFactory,
 )

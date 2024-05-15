@@ -79,7 +79,6 @@ from api.nodes.permissions import (
     AdminContributorOrPublic,
     ContributorDetailPermissions,
     ContributorOrPublic,
-    ContributorReadableAdminWriteable,
     ExcludeWithdrawals,
     IsAdmin,
     IsAdminContributor,
@@ -626,7 +625,7 @@ class NodeDraftRegistrationsList(JSONAPIBaseView, generics.ListCreateAPIView, No
     Use DraftRegistrationsList endpoint instead.
     """
     permission_classes = (
-        ContributorReadableAdminWriteable,
+        AdminOrPublic,
         drf_permissions.IsAuthenticatedOrReadOnly,
         base_permissions.TokenHasScope,
     )

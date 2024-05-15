@@ -104,18 +104,6 @@ class IsAdmin(permissions.BasePermission):
         auth = get_user_auth(request)
         return obj.has_permission(auth.user, osf_permissions.ADMIN)
 
-class ContributorReadableAdminWriteable(permissions.BasePermission):
-
-    acceptable_models = (AbstractNode, )
-
-    def has_object_permission(self, request, view, obj):
-        assert_resource_type(obj, self.acceptable_models)
-        auth = get_user_auth(request)
-        required_permission = osf_permissions.READ
-        if request.method not in permissions.SAFE_METHODS:
-            required_permission = osf_permissions.ADMIN
-        return obj.has_permission(auth.user, required_permission)
-
 
 class AdminDeletePermissions(permissions.BasePermission):
     acceptable_models = (AbstractNode, DraftRegistration)

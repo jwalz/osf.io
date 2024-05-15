@@ -126,39 +126,83 @@ class TestDraftRegistrationList(DraftRegistrationTestCase):
         assert data[0]['id'] == draft_registration._id
         assert data[0]['attributes']['registration_metadata'] == {}
 
-    def test_view_draft_list(
-            self, app, user_write_contrib, project_public,
-            user_read_contrib, user_non_contrib,
-            url_draft_registrations):
-
-        # test_read_only_contributor_cannot_view_draft_list
+    def test_view_draft_list__read_contributor(
+        self, app, url_draft_registrations, draft_registration, user_read_contrib
+    ):
+        # Read contrib on project and draft can access the endpoint AND see drafts
         res = app.get(
             url_draft_registrations,
             auth=user_read_contrib.auth,
-            expect_errors=True)
+            expect_errors=True
+        )
         assert res.status_code == 200
         assert res.json['data']
 
-    #   test_read_write_contributor_cannot_view_draft_list
+    def test_view_draft_list__write_contributor(
+        self, app, url_draft_registrations, draft_registration, user_write_contrib
+    ):
+        # Write contrib on project and draft can access the endpoint AND see drafts
         res = app.get(
             url_draft_registrations,
             auth=user_write_contrib.auth,
-            expect_errors=True)
+            expect_errors=True
+        )
         assert res.status_code == 200
         assert res.json['data']
 
-    #   test_logged_in_non_contributor_cannot_view_draft_list
+    def test_view_draft_list__non_contributor__public_project(
+        self, app, url_draft_registrations, draft_registration, user_non_contrib
+    ):
+        # Non-contributor can access endpoint for public project but gets no data
         res = app.get(
             url_draft_registrations,
             auth=user_non_contrib.auth,
-            expect_errors=True)
+            expect_errors=True
+        )
+        assert res.status_code == 200
+        assert not res.json['data']
+
+    def test_view_draft_list__non_contributor__private_project(
+        self, app, url_draft_registrations, user_non_contrib, project_public
+    ):
+        project_public.is_public = False
+        project_public.save()
+
+        # Non-contributor cannot access endpoint for private project
+        res = app.get(
+            url_draft_registrations,
+            auth=user_non_contrib.auth,
+            expect_errors=True
+        )
         assert res.status_code == 403
 
-    #   test_unauthenticated_user_cannot_view_draft_list
-        res = app.get(url_draft_registrations, expect_errors=True)
+    def test_view_draft_list__unauthenticated__public_project(
+        self, app, url_draft_registrations, draft_registration
+    ):
+        # Unauthenticated user can access endpoint for public project but gets no data
+        res = app.get(
+            url_draft_registrations,
+            auth=None,
+            expect_errors=True
+        )
+        assert res.status_code == 200
+        assert not res.json['data']
+
+    def test_view_draft_list__unauthenticated__private_project(
+        self, app, url_draft_registrations, draft_registration, project_public
+    ):
+        project_public.is_public = False
+        project_public.save()
+
+        # Unauthenticated user  cannot access endpoint for private project
+        res = app.get(
+            url_draft_registrations,
+            auth=None,
+            expect_errors=True
+        )
         assert res.status_code == 401
 
-    def test_view_draft_list__contributor_mismatch(
+    def test_view_draft_list__project_only_contributor(
         self, app, url_draft_registrations, draft_registration, project_public
     ):
         # Project-only contributor can see the draft list but has no results
@@ -167,11 +211,42 @@ class TestDraftRegistrationList(DraftRegistrationTestCase):
             project_only_contributor,
             permissions=permissions.READ
         )
-        res = app.get(url_draft_registrations, auth=project_only_contributor.auth, expect_errors=True)
+        res = app.get(
+            url_draft_registrations,
+            auth=project_only_contributor.auth,
+            expect_errors=True
+        )
         assert res.status_code == 200
         assert not res.json['data']
 
-        # Draft-only contributor cannot see the list of drafts on the project
+    def test_view_draft_list__draft_only_contributor(
+        self, app, url_draft_registrations, draft_registration, project_public
+    ):
+        # Draft-only contributor can see Drafts for which they are a contributor on public projects
+        draft_only_contributor = AuthUserFactory()
+
+        new_draft = DraftRegistrationFactory(
+            branched_from=project_public
+        )
+        new_draft.add_contributor(
+            draft_only_contributor,
+            permissions=permissions.READ
+        )
+        res = app.get(
+            url_draft_registrations,
+            auth=draft_only_contributor.auth,
+            expect_errors=True
+        )
+        assert res.status_code == 200
+        assert len(res.json['data']) == 1
+        assert res.json['data'][1]['id'] == new_draft._id
+
+    def test_view_draft_list__draft_only_contributor__private_project(
+        self, app, url_draft_registrations, draft_registration, project_public
+    ):
+        # Draft-only contributor cannot see the list of Drafts on a private project
+        project_public.is_public = False
+        project_public.save()
         draft_only_contributor = AuthUserFactory()
         draft_registration.add_contributor(
             draft_only_contributor,

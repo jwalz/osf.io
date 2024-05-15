@@ -202,8 +202,6 @@ def check_resource_permissions(resource, auth, action):
 
 
 def _check_registration_permissions(registration, auth, permission, action):
-    if registration.is_retracted:
-        return False
     if permission == permissions.READ:
         return registration.registered_from.can_view(auth)
     if action in ('copyfrom', 'upload'):
@@ -298,7 +296,7 @@ def get_authenticated_resource(resource_id):
     # Convert a DraftNode to its corresponding node if applicable.
     resource = resource.registered_draft.first() if isinstance(resource, DraftNode) else resource
 
-    if resource.deleted:
+    if resource.deleted or resource.is_retracted:
         raise HTTPError(http_status.HTTP_410_GONE, message='Resource has been deleted.')
 
     return resource

@@ -1028,8 +1028,8 @@ class TestRegistrationFiles:
     @pytest.mark.parametrize('user_role', (UserRoles.NONCONTRIB, UserRoles.UNAUTHENTICATED))
     def test_registration_file_detail__pending__non_contributor(self, app, registration, file_url, user_role):
         api_utils.configure_test_registration(registration=registration, registration_state=RegStates.PENDING)
-        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role, expect_errors=True)
-        resp = app.get(file_url, auth=test_auth)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth, expect_errors=True)
         assert resp.status_code == 401 if test_auth else 403
 
     @pytest.mark.parametrize('user_role', UserRoles.contributor_roles(include_moderator=True))
@@ -1042,20 +1042,20 @@ class TestRegistrationFiles:
     @pytest.mark.parametrize('user_role', (UserRoles.NONCONTRIB, UserRoles.UNAUTHENTICATED))
     def test_registration_file_detail__embargo__non_contributor(self, app, registration, file_url, user_role):
         api_utils.configure_test_registration(registration=registration, registration_state=RegStates.PENDING)
-        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role, expect_errors=True)
-        resp = app.get(file_url, auth=test_auth)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth, expect_errors=True)
         assert resp.status_code == 401 if test_auth else 403
 
     @pytest.mark.parametrize('user_role', UserRoles)
     def test_registration_file_detail__withdrawn(self, app, registration, file_url, user_role):
         api_utils.configure_test_registration(registration=registration, registration_state=RegStates.WITHDRAWN)
-        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role, expect_errors=True)
-        resp = app.get(file_url, auth=test_auth)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth, expect_errors=True)
         assert resp.status_code == 401 if test_auth else 403
 
     @pytest.mark.parametrize('user_role', UserRoles)
     def test_registration_file_detail__rejected(self, app, registration, file_url, user_role):
         api_utils.configure_test_registration(registration=registration, registration_state=RegStates.REJECTED)
-        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role, expect_errors=True)
-        resp = app.get(file_url, auth=test_auth)
+        test_auth = api_utils.configure_test_auth(resource=registration, user_role=user_role)
+        resp = app.get(file_url, auth=test_auth, expect_errors=True)
         assert resp.status_code == 401 if test_auth else 403

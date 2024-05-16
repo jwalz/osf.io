@@ -296,7 +296,7 @@ def get_authenticated_resource(resource_id):
     # Convert a DraftNode to its corresponding node if applicable.
     resource = resource.registered_draft.first() if isinstance(resource, DraftNode) else resource
 
-    if resource.deleted or resource.is_retracted:
+    if resource.deleted or getattr(resource, 'is_retracted', False):
         raise HTTPError(http_status.HTTP_410_GONE, message='Resource has been deleted.')
 
     return resource

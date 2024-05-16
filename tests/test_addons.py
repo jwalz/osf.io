@@ -103,7 +103,7 @@ class TestAddonAuth(OsfTestCase):
         assert_equal(res.status_code, 410)
 
     def test_auth_withdrawn_registration(self):
-        registration = WithdrawnRegistrationFactory(creator=self.user)
+        registration = WithdrawnRegistrationFactory(creator=self.user).target_registration
         url = self.build_url(nid=registration._id)
         res = self.app.get(url, auth=self.user.auth, expect_errors=True)
         assert_equal(res.status_code, 410)

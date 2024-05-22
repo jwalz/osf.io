@@ -1,22 +1,16 @@
 import contextlib
 import itertools
 import json
-import functools
 import typing
 import re
+import urllib.parse
 
 import dataclasses  # backport
 import responses
 
 from . import hmac
-from osf.models import OsfUser, AbstractNode
+from osf.models import OSFUser, AbstractNode
 from website import settings
-class Singleton:
-    """Incredibly naive Singleton metaclass implementation."""
-
-    @functools.lrucache
-    def __call__(cls, *args, **kwargs):
-        return super().__call__(*args, **kwargs)
 
 
 @dataclasses.dataclass
@@ -25,6 +19,10 @@ class _MockGVEntity:
     RESOURCE_TYPE: typing.ClassVar[str]
     pk: int
 
+    @property
+    def api_path(self):
+        return 'v1/{self.resource_type}/{self.pk}/'
+
     def serialize(self):
         data = {
             'type': self.RESOURCE_TYPE,
@@ -32,7 +30,7 @@ class _MockGVEntity:
             'attributes': self._serialize_attributes(),
             'liniks': self._serialize_links(),
         }
-        relationships = self._serialize_relationships
+        relationships = self._serialize_relationships()
         if relationships:
             data['relationships'] = relationships
         return data
@@ -44,10 +42,10 @@ class _MockGVEntity:
         ...
 
     def _serialize_links(self):
-        return {'self': f'{settings.GRAVYVALET_URL}v1/{self.RESOURCE_TYPE}/{self.pk}/'}
+        return {'self': f'{settings.GRAVYVALET_URL}/{self.api_path}/'}
 
     def _format_relationship_entry(self, relationship_path, related_type=None, related_pk=None):
-        relationship_api_path = f'{settings.GRAVYVALET_URL}{self.api_path}{relationship_path}/'
+        relationship_api_path = f'{settings.GRAVYVALET_URL}/{self.api_path}{relationship_path}/'
         relationship_entry = {'links': {'related': relationship_api_path}}
         if related_type and related_pk:
             relationship_entry['data'] = {'type': related_type, 'id': related_pk}
@@ -183,13 +181,13 @@ class _MockAddon(_MockGVEntity):
         }
 
 
-class MockGravyValet(metaclass=Singleton):
+class MockGravyValet():
 
     ROUTES = {
-        r'/v1/user-references/(??P<user_pk>\d+)/authorized-storage-accounts': '_get_user_accounts',
+        r'/v1/user-references/(?P<user_pk>\d+)/authorized-storage-accounts': '_get_user_accounts',
         r'v1/resource-references/(?P<resource_pk>\d+)/configured-storage-addons': '_get_resource_addons',
-        r'v1/user-references/((?P<pk>\d+)/|(\?filter\[user_uri\]=(?P<uri>.+)))': '_get_user',
-        r'v1/resource-references/((?P<pk>\d+)/|(\?filter\[resource_uri\]=(?P<uri>.+)))': '_get_resource',
+        r'v1/user-references/((?P<pk>\d+)/|(\?filter\[user_uri\]=(?P<user_uri>.+)))': '_get_user',
+        r'v1/resource-references/((?P<pk>\d+)/|(\?filter\[resource_uri\]=(?P<resource_uri>.+)))': '_get_resource',
     }
 
     def __init__(self):
@@ -204,6 +202,7 @@ class MockGravyValet(metaclass=Singleton):
     def validate_headers(self, value: bool):
         if not isinstance(value, bool):
             raise ValueError('validate_headers must be a boolean value')
+        self._validate_headers = value
 
     def _clear_mappings(self, include_providers: bool = True):
         """Reset all configured users/resources/acounts/addons and, optionally, providers."""
@@ -219,7 +218,7 @@ class MockGravyValet(metaclass=Singleton):
         # Mapping from resource "pk" to _MockAddons "configured on" the resource
         self._resource_addons: dict[str, list[_MockAddon]] = {}
 
-    def _get_or_create_user_entry(self, user: OsfUser):
+    def _get_or_create_user_entry(self, user: OSFUser):
         user_uri = user.get_semantic_iri()
         user_pk = self._known_users.get(user_uri)
         if not user_pk:
@@ -237,7 +236,7 @@ class MockGravyValet(metaclass=Singleton):
             self._known_resources[resource_pk] = resource_uri
         return resource_uri, resource_pk
 
-    def configure_mock_provider(self, provider_name: str, **service_attrs):
+    def configure_mock_provider(self, provider_name: str, **service_attrs) -> _MockAddonProvider:
         known_provider = self._known_providers.get(provider_name)
         provider_pk = known_provider.pk if known_provider else len(self._known_providers) + 1
         new_provider = _MockAddonProvider(
@@ -248,20 +247,20 @@ class MockGravyValet(metaclass=Singleton):
         self._known_providers[provider_name] = new_provider
         return new_provider
 
-    def configure_mock_account(self, user: OsfUser, addon_name: str, **account_attrs):
+    def configure_mock_account(self, user: OSFUser, addon_name: str, **account_attrs) -> _MockAccount:
         user_uri, user_pk = self._get_or_create_user_entry(user)
         account_pk = _get_nested_count(self._user_accounts) + 1
         connected_addon = self._known_providers[addon_name]
         new_account = _MockAccount(
             pk=account_pk,
-            owner_pk=user_pk,
+            account_owner_pk=user_pk,
             provider_pk=connected_addon.pk,
             **account_attrs
         )
         self._user_accounts.setdefault(user_uri, []).append(new_account)
         return new_account
 
-    def configure_mock_addon(self, resource: AbstractNode, connected_account: _MockAccount, **config_attrs):
+    def configure_mock_addon(self, resource: AbstractNode, connected_account: _MockAccount, **config_attrs) -> _MockAddon:
         resource_uri, resource_pk = self._get_or_create_resource_entry(resource)
         addon_pk = _get_nested_count(self._resource_addons) + 1
         new_addon = _MockAddon(
@@ -273,7 +272,7 @@ class MockGravyValet(metaclass=Singleton):
         self._resource_addons.setdefault(resource_uri, []).append(new_addon)
         return new_addon
 
-    @contextlib.context_manager
+    @contextlib.contextmanager
     def run_mock(self):
         with responses.RequestsMock() as requests_mock:
             requests_mock.add_callback(
@@ -284,21 +283,25 @@ class MockGravyValet(metaclass=Singleton):
             )
             yield requests_mock
 
-    def _route_request(self, request) -> tuple[int, dict, str]:
+    def _route_request(self, request):  # -> tuple[int, dict, str]
         if self.validate_headers:
-            hmac.validate_signed_headers(request)
+            try:
+                hmac.validate_signed_headers(request)
+            except ValueError:
+                return (400, {}, '')
         for route_expr, routed_func_name in self.ROUTES.items():
-            url_regex = re.compile(f'{settings.GRAVYVALET_URL}{route_expr}')
-            route_match = url_regex.match(request.url)
+            url_regex = re.compile(f'{settings.GRAVYVALET_URL}/{route_expr}')
+            route_match = url_regex.match(urllib.parse.unquote(request.url))
             if route_match:
                 func = getattr(self, routed_func_name)
                 return func(**route_match.groupdict())
+        raise ValueError(f'No matching routes for {request.url}')
 
-    def _get_user_response(
+    def _get_user(
         self,
-        pk: typing.Optional[str] = None,
-        user_uri: typing.Optional[str] = None
-    ) -> tuple[int, dict, str]:
+        pk=None,  # str | None
+        user_uri=None,  # str | None
+    ):  # -> tuple[int, dict, str]
         if not (pk or user_uri):
             raise ValueError('Must have either user PK or uri for lookup')
 
@@ -316,13 +319,13 @@ class MockGravyValet(metaclass=Singleton):
             list_view=list_view
         )
 
-    def _get_resource_response(
+    def _get_resource(
         self,
-        pk: typing.Optional[str] = None,
-        resource_uri: typing.Optional[str] = None
-    ) -> tuple[int, dict, str]:
-        if not (pk or resource_uri):
-            raise ValueError('Must have either user PK or uri for lookup')
+        pk=None,  # str | None
+        resource_uri=None,  # str | None
+    ):  # -> typing.Tuple[int, dict, str]:
+        if bool(pk) == bool(resource_uri):
+            raise ValueError('Must have exactly one of user PK or uri for lookup')
 
         # if passed the resource_uri, call came through list endpoint with filter
         if resource_uri:
@@ -338,13 +341,13 @@ class MockGravyValet(metaclass=Singleton):
             list_view=list_view
         )
 
-    def _get_user_accounts(self, user_pk: str) -> tuple(int, dict, str):
+    def _get_user_accounts(self, user_pk: str):  # -> tuple[int, dict, str]
         return _format_response(
             data=self._user_accounts.get(int(user_pk), []),
             list_view=True
         )
 
-    def _get_resource_addons(self, resource_pk: str) -> tuple(int, dict, str):
+    def _get_resource_addons(self, resource_pk: str):  # -> tuple[int, dict, str]
         resource_pk = int(resource_pk)
         return _format_response(
             data=self._resource_addons.get(int(resource_pk), []),
@@ -353,21 +356,27 @@ class MockGravyValet(metaclass=Singleton):
 
 
 def _format_response(
-    data: typing.Union[_MockGVEntity, list[_MockGVEntity]],
+    data,  # _MockGVEntity | list[_MockGVEntity]
     status_code: int = 200,
     list_view: bool = False,
-    headers: typing.Optional[dict] = None
-) -> tuple(int, dict, str):
+    headers: dict = None,
+):  # -> tuple[int, dict, str]:
     """Returns the expected (status, headers, json) tuple expected by callbacks for MockRequest."""
     headers = headers or {}
-    if list_view and not isinstance(data, list):
-        data = list[data]
+    serialized_data = None
+    if list_view:
+        if not isinstance(data, list):
+            data = [data]
+        serialized_data = [entry.serialize() for entry in data]
+    else:
+        serialized_data = data.serialize()
+
     response_dict = {
-        data: data.serialize() if not list_view else [entry.serialize() for entry in data]
+        'data': serialized_data
     }
     return (status_code, headers, json.dumps(response_dict))
 
 
-def _get_nested_count(d: dict[typing.ANY, list[typing.ANY]]):
+def _get_nested_count(d):  # dict[Any, Any] -> int:
     """Get the total number of entries from a dictionary with lists for values."""
     return sum(map(len, itertools.chain(d.values())))

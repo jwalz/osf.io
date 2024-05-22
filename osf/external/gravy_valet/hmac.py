@@ -2,14 +2,13 @@ import base64
 import hashlib
 import hmac
 import re
+import typing
 import urllib
-from datetime import (
-    UTC,
-    datetime,
-)
 
-from django.conf import settings
+from django.utils import timezone
 
+from osf.models import OSFUser, AbstractNode
+from website import settings
 
 _AUTH_HEADER_REGEX = re.compile(
     r'^HMAC-SHA256 SignedHeaders=(?P<headers>[\w;-]*)&Signature=(?P<signature>[^\W_]*$)'
@@ -25,13 +24,13 @@ def _sign_message(message: str, hmac_key: str = None) -> str:
 
 
 def _get_signed_components(
-    request_url: str, request_method: str, body: str | bytes, **additional_headers
-) -> tuple[list[str], dict[str, str]]:
+    request_url: str, request_method: str, body: typing.Union[str, bytes], **additional_headers
+) -> typing.Tuple[typing.List[str], typing.Dict[str, str]]:
     parsed_url = urllib.parse.urlparse(request_url)
     if isinstance(body, str):
         body = body.encode()
     content_hash = hashlib.sha256(body).hexdigest() if body else None
-    auth_timestamp = datetime.now(UTC)
+    auth_timestamp = timezone.now()
     signed_segments = [
         request_method,
         parsed_url.path,
@@ -51,7 +50,12 @@ def _get_signed_components(
 
 
 def make_gravy_valet_hmac_headers(
-    request_url: str, request_method: str, body: str | bytes = '', hmac_key: str = None, requested_user=None, requested_resource=None
+    request_url: str,
+    request_method: str,
+    body: typing.Union[str, bytes] = '',
+    hmac_key: typing.Optional[str] = None,
+    requested_user: typing.Optional[OSFUser] = None,
+    requested_resource: typing.Optional[AbstractNode] = None
 ) -> dict:
 
     osf_permissions_headers = {}
@@ -78,7 +82,7 @@ def make_gravy_valet_hmac_headers(
     )
 
 
-def _reconstruct_string_to_sign_from_request(request, signed_headers: list[str]) -> str:
+def _reconstruct_string_to_sign_from_request(request, signed_headers: typing.List[str]) -> str:
     signed_segments = [request.method, request.path]
     query_string = request.META.get('QUERY_STRING')
     if query_string:
@@ -89,7 +93,7 @@ def _reconstruct_string_to_sign_from_request(request, signed_headers: list[str])
     return '\n'.join([segment for segment in signed_segments if segment])
 
 
-def validate_signed_headers(request, hmac_key=None):
+def validate_signed_headers(request, hmac_key: typing.Optional[str] = None):
     match = _AUTH_HEADER_REGEX.match(request.headers.get('Authorization', ''))
     if not match:
         raise ValueError(

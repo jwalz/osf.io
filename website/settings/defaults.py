@@ -374,6 +374,7 @@ SHARE_API_TOKEN = None  # Required to send project updates to SHARE
 
 CAS_SERVER_URL = 'http://localhost:8080'
 MFR_SERVER_URL = 'http://localhost:7778'
+MFR_IDENTIFYING_HEADER = 'X-Cos-Mfr-Render-Request'
 
 ###### ARCHIVER ###########
 ARCHIVE_PROVIDER = 'osfstorage'

@@ -2,7 +2,7 @@ import datetime
 import os
 import uuid
 import markupsafe
-from future.moves.urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlparse
 from django.utils import timezone
 
 from flask import make_response
@@ -221,7 +221,13 @@ def get_auth(auth, **kwargs):
         resource=resource, provider_name=provider_name, file_version=file_version,
     )
 
-    _enqueue_metrics(file_version=file_version, file_node=file_node, action=action, auth=auth)
+    _enqueue_metrics(
+        file_version=file_version,
+        file_node=file_node,
+        action=action,
+        auth=auth,
+        wb_metrics_data=waterbutler_data['metrics']
+    )
 
     # Construct the response payload including the JWT
     return _construct_payload(
@@ -374,15 +380,29 @@ def _get_osfstorage_file_version_and_node(
     return file_version, file_node
 
 
-def _enqueue_metrics(file_version, file_node, action, auth):
+def _enqueue_metrics(file_version, file_node, action, auth, wb_metrics_data):
     if not file_version:
         return
 
     if action == 'render':
         file_signals.file_viewed.send(auth=auth, fileversion=file_version, file_node=file_node)
-    elif action == 'download':
+    elif action == 'download' and not _download_is_from_mfr(wb_metrics_data):
         file_signals.file_downloaded.send(auth=auth, fileversion=file_version, file_node=file_node)
     return
+
+
+def _download_is_from_mfr(wb_metrics_data):
+    # If MFR header present, then request originated from MFR
+    if request.headers.get(settings.MFR_IDENTIFYING_HEADER):
+        return True
+
+    # MFR request was generated via hypothes.is integration???
+    original_request_url = wb_metrics_data.get('uri', '')
+    original_request_params = parse_qs(urlparse(original_request_url).query)
+    # parse_qs returns a list of values for any params that are present
+    if 'render' in original_request_params.get('mode', []):
+        return True
+    return False
 
 
 def _construct_payload(auth, resource, credentials, waterbutler_settings):

@@ -1069,7 +1069,7 @@ class TestCheckAuth(OsfTestCase):
 
         self.assertFalse(component_registration.has_permission(self.user, READ))
         self.assertTrue(
-            views._check_resource_permissions(component_registration, Auth(user=component_admin), 'metadata')
+            views._check_resource_permissions(component_registration, Auth(user=self.user), 'metadata')
         )
 
     def test_has_permission_on_parent_node_upload_fail_if_not_registration(self):

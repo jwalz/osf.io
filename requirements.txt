@@ -42,7 +42,7 @@ tqdm==4.28.1
 # Python markdown extensions for comment emails
 git+https://github.com/Johnetordoff/mdx_del_ins.git@django-3
 
-certifi==2020.12.5
+certifi==2022.12.7
 sendgrid==1.5.13
 
 requests>=2.21.0

@@ -24,11 +24,15 @@ from api.cedar_metadata_records.serializers import CedarMetadataRecordsListSeria
 from api.cedar_metadata_records.utils import can_view_record
 from api.nodes.permissions import ContributorOrPublic
 from api.files import annotations
-from api.files.permissions import IsPreprintFile
-from api.files.permissions import CheckedOutOrAdmin
-from api.files.serializers import FileSerializer
-from api.files.serializers import FileDetailSerializer
-from api.files.serializers import FileVersionSerializer
+from api.files.permissions import (
+    CheckedOutOrAdmin,
+    IsPreprintFile,
+)
+from api.files.serializers import (
+    FileSerializer,
+    FileDetailSerializer,
+    FileVersionSerializer,
+)
 from osf.utils.permissions import ADMIN
 
 
@@ -50,7 +54,7 @@ class FileMixin(object):
             if obj.is_deleted:
                 raise Gone(detail='The requested file is no longer available.')
 
-        if getattr(obj.target, 'deleted', None):
+        if getattr(obj.target, 'deleted', None) or getattr(obj.target, 'is_retracted', False):
             raise Gone(detail='The requested file is no longer available')
 
         if getattr(obj.target, 'is_quickfiles', False) and getattr(obj.target, 'creator'):
@@ -163,12 +167,10 @@ class FileVersionDetail(JSONAPIBaseView, generics.RetrieveAPIView, FileMixin):
 
     # overrides RetrieveAPIView
     def get_object(self):
+        # May raise a permission denied
         self.file = self.get_file()
         maybe_version = self.file.get_version(self.kwargs[self.version_lookup_url_kwarg])
 
-        # May raise a permission denied
-        # Kinda hacky but versions have no reference to node or file
-        self.check_object_permissions(self.request, self.file)
         return utils.get_object_or_error(FileVersion, getattr(maybe_version, '_id', ''), self.request)
 
     def get_serializer_context(self):

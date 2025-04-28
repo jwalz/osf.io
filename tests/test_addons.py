@@ -21,9 +21,10 @@ from tests.base import OsfTestCase, get_default_metaschema
 from api_tests.utils import create_test_file
 from osf_tests.factories import (
     AuthUserFactory,
+    DraftRegistrationFactory,
     ProjectFactory,
     RegistrationFactory,
-    DraftRegistrationFactory,
+    WithdrawnRegistrationFactory,
 )
 from website import settings
 from addons.base import views
@@ -95,6 +96,18 @@ class TestAddonAuth(OsfTestCase):
         }, settings.WATERBUTLER_JWT_SECRET, algorithm=settings.WATERBUTLER_JWT_ALGORITHM), self.JWE_KEY)}
         return api_url_for('get_auth', **options)
 
+    def test_auth_deleted_project(self):
+        self.node.deleted = timezone.now()
+        self.node.save()
+        res = self.app.get(self.build_url(), auth=self.user.auth, expect_errors=True)
+        assert_equal(res.status_code, 410)
+
+    def test_auth_withdrawn_registration(self):
+        registration = WithdrawnRegistrationFactory(creator=self.user).target_registration
+        url = self.build_url(nid=registration._id)
+        res = self.app.get(url, auth=self.user.auth, expect_errors=True)
+        assert_equal(res.status_code, 410)
+
     def test_auth_download(self):
         url = self.build_url()
         res = self.app.get(url, auth=self.user.auth)
@@ -111,6 +124,7 @@ class TestAddonAuth(OsfTestCase):
         url = self.build_url(action='render')
         res = self.app.get(url, auth=self.user.auth)
         assert_equal(res.status_code, 200)
+
     def test_auth_render_action_requires_read_permission(self):
         node = ProjectFactory(is_public=False)
         url = self.build_url(action='render', nid=node._id)

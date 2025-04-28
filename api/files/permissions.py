@@ -1,8 +1,8 @@
 from rest_framework import permissions
 
 from api.base.utils import get_user_auth
-from osf.models import BaseFileNode
 from api.preprints.permissions import PreprintPublishedOrAdmin
+from osf.models import BaseFileNode
 from osf.utils.permissions import ADMIN
 from osf.utils.workflows import DefaultStates
 
